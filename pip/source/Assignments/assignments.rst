@@ -80,7 +80,7 @@ Problem Set
     # write code to print the first character of each element of list lbc on a separate line
 
 
-#. See comments for instructions, below.
+#. See comments for instructions, below. This and the next question deal with the string ``rv``.
 
   .. actex:: ps_2_2
 
@@ -97,7 +97,11 @@ Problem Set
 
       # (For this and the next question, imagine that you couldn't see the whole string value, 
       # but you still needed to answer this question?)
-      
+
+#. See comments for instructions, below. 
+
+  .. actex:: ps_2_3
+    
       # Write code to find out whether the word "raven" is in the string rv. 
       # Print "Yes" if it is, and "No" if it isn't.
 
@@ -107,7 +111,7 @@ Problem Set
 
 #. There is a file called ``about_programming.txt`` that you can access in an ActiveCode window
 using the open() function. 
-(It is made up of text from the *Computer Programming* article on Wikipedia; ``http://en.wikipedia.org/wiki/Computer_programming``.) Follow the directions (see the comments in the code window) in the exercises below to manipulate this file.
+(It is made up of text from the *Computer Programming* article on Wikipedia; ``http://en.wikipedia.org/wiki/Computer_programming``.) Follow the directions in the exercises below (see the comments in the code window) to manipulate this file.
 
    .. datafile::  about_programming.txt
       :hide:
@@ -141,14 +145,19 @@ using the open() function.
       security clearance). However, representing oneself as a "professional software engineer"
       without a license from an accredited institution is illegal in many parts of the world.
  
-   .. actex:: ps_2_3
+   .. actex:: ps_2_4
 
       # Write code to open the file, about_programming.txt, and save it in a variable, f. 
       # Print the first two lines of the file.
 
 
-      # Write code to find, and print, the number of lines in the file. 
+      # Write code to find, and print, the number of lines in the file.
+      ## (Hint, if your code is not working the way you expect: what variable are you referring to? Do you need to open the file again, or no?)
 
+
+#. See comments for instructions. This question also deals with the file named ``about_programming.txt``.
+
+   .. actex:: ps_2_5
 
       # Write code to find, and print, the number of words in the file.
 
@@ -159,7 +168,12 @@ using the open() function.
       # Write code to find, and print, the number of lines in the file that include the word "programmer".
 
 
-      # Write code to find, and print, the number of vowels in the file.
+#. *BONUS POINT** (not required): Write code to find, and print, the number of vowels in that file.
+
+   ..actex:: ps_2_6
+
+      # Write your code here, if you choose to try this problem!
+      
 
 
 
