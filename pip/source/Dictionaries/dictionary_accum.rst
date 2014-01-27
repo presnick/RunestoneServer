@@ -30,10 +30,13 @@ usage. For our purposes in the this chapter, we will use the text of the Sherloc
 "A Study in Scarlet", by Sir Arthur Conan Doyle. The text actually includes a few
 lines about the source of the transcription (Project Gutenberg), but those will not 
 materially affect our analyses so we will just leave them in. You can access this text
-within this chapter with the code ``open('scarlet.txt', 'r')``. As with other files 
-that we access in this textbook environment, this one is actually pre-loaded in your browser, 
-not retrieved from your computer's file system. That's why this chapter may be a
-little slower to load than others.
+within this chapter with the code ``open('scarlet.txt', 'r')``.
+
+.. raw:: html
+   
+   <div class="alert alert-info">
+   <p>As with other files that we access in this textbook environment, this one is actually pre-loaded in your browser, not retrieved from your computer's file system. That's why this chapter may be a little slower to load than others. You can view the text of "A Study in Scarlet" at the <a href="#scarlet.txt">bottom of the page.</a></p>
+   </div>
 
 If we want to find out how often the letter 't' occurs, we can accumulate the result
 in a count variable.
@@ -205,12 +208,12 @@ the characters, using a for loop to iterate through the keys in x.
       x[c] = x[c] + 1
 
    for c in x.keys():
-      print(c " ": " + str(x[c]) + " occurrences")
+      print(c + ": " + str(x[c]) + " occurrences")
    
 Note that only those letters that actually occur in the text are shown. Some
 punctuation marks that are possible in English, but were never used in the 
 text, are omitted completely. The blank line partway through the output may surprise you.
-That's actually saying that the newline character, `\n`, appears 5154 times in
+That's actually saying that the newline character, `\\n`, appears 5154 times in
 the text. In other words, there are 5154 lines of text in the file. Let's
 test that hypothesis 
 
@@ -225,7 +228,7 @@ test that hypothesis
 
 
 Accumulating Results From a Dictionary
-======================================
+--------------------------------------
 
 Just as we have iterated through the elements of a list to accumulate a result,
 we can also iterate through the keys in a dictionary, accumulating a result that may
@@ -264,7 +267,7 @@ punctuation, capital letters, etc.), we add to the total score.
 Line 18 is the tricky one. We are updating the variable tot to have its old number plus the score for the current letter times the number of occurrences of that letter.
 Try changing some of the letter values and see how it affects the total. Try changing txt to be just a single word that you might play in Scrabble.
 
-Accumulating a maximum value
+Accumulating a Maximum Value
 ----------------------------
 
 Now let's take a detour for a moment, and see how we can use the accumulator 
@@ -286,7 +289,7 @@ Step through the execution of this code to get a feel for how it works.
    for x in L[1:]:
       if x > a:
          a = x
-   print(x)
+   print(a)
 
 Now, you may notice that this code will break if there isn't more than one item in L. 
 You would get an error on line 4 for trying to access item L[1], which is the second
@@ -301,7 +304,7 @@ item. If we assume that L will have only numbers >= 0, we can initialize the max
    for x in L:
       if x > a:
          a = x
-   print(x)
+   print(a)
 
 
 We can do a similar thing with a dictionary to find the maximum value. You can loop
@@ -352,7 +355,7 @@ max-so-far.
       if d[c] > a:
          a = c
 
-Accumulating the best key
+Accumulating the Best Key
 -------------------------
                
 Now what if we want to find the *key* associated with the maximum value? It would be nice to just find
@@ -376,7 +379,9 @@ but you'll learn more if you try to write it yourself first.
       two keys have the same maximum value, it's OK to print out either one. Fill
       in the skeleton code
       
-      .. actex: ex_dict_accum_3
+
+      .. actex:: ex_dict_accum_3
+
          d = {'a': 194, 'b': 54, 'c':34, 'd': 44, 'e': 312, 'full':31}
          
          ks = d.keys()
@@ -386,7 +391,7 @@ but you'll learn more if you try to write it yourself first.
             # bigger than the value associated with the best_key_so_far
             # if so, save the current key as the best so far
             
-         print("key " + best_key_so_far + " has the highest value, " + d[best_key_so_far])
+         print("key " + best_key_so_far + " has the highest value, " + str(d[best_key_so_far]))
    
    .. tab:: Answer 
    
@@ -400,11 +405,11 @@ but you'll learn more if you try to write it yourself first.
             if d[k] > d[best_key_so_far]:
                best_key_so_far = k
             
-         print("key " + best_key_so_far + " has the highest value, " + d[best_key_so_far])
+         print("key " + best_key_so_far + " has the highest value, " + str(d[best_key_so_far]))
          
 
 Exercises
-=========
+---------
 
 
 #.
@@ -413,37 +418,40 @@ Exercises
 
         .. tab:: Question
 
-           Write a program that reads in a string on the command line and returns a
+           Write a program that reads a person's input and returns a
            table of the letters of the alphabet in alphabetical order which occur in
            the string together with the number of times each letter occurs. Case should 
            be ignored. A sample run of the program would look this this::
         
-               $ python letter_counts.py "ThiS is String with Upper and lower case Letters."
-               a  2
-               c  1
-               d  1
-               e  5
-               g  1
-               h  2
-               i  4
-               l  2
-               n  2
-               o  1
-               p  2
-               r  4
-               s  5
-               t  5
-               u  1
-               w  2
-               $
+               "ThiS is String with Upper and lower case Letters."
+               a 2
+               c 1
+               d 1
+               e 5
+               g 1
+               h 2
+               i 4
+               l 2
+               n 2
+               o 1
+               p 2
+               r 4
+               s 5
+               t 5
+               u 1
+               w 2
         
            .. actex:: ex_11_01
 
+               x = input("Enter a sentence")
+               print(x)
+
         .. tab:: Answer
             
-            .. activecode:: q1_answer
+            .. activecode:: ex_11_01_answer
 
                 x = input("Enter a sentence")
+                print(x)
 
                 x = x.lower() # convert to all lowercase
 
@@ -468,83 +476,40 @@ Exercises
                 :shortname: interactivepython
                 :identifier: disqus_de4f21e35d3a41a4a3ac4ac888f78d1a
 
-#.
+#. (Optional)
+      .. tabbed:: q2
 
-    .. tabbed:: q3
+            .. tab:: Question
 
-        .. tab:: Question
+                  Write a program that finds the most used 7 letter word in scarlet.txt and output the most used word.
 
-           Write a program called ``alice_words.py`` that creates a text file named
-           ``alice_words.txt`` containing an alphabetical listing of all the words, and the
-           number of times each occurs, in the text version of `Alice's Adventures in Wonderland`.  
-           (You can obtain a free plain text version of the book, along with many others, from 
-           http://www.gutenberg.org.) The first 10 lines of your output file should look
-           something like this
-        
-            =========== ===========
-            Word              Count
-            =========== ===========
-            a                 631
-            a-piece           1
-            abide             1
-            able              1
-            about             94
-            above             3
-            absence           1
-            absurd            2
-            =========== ===========
-        
-           How many times does the word, ``alice``, occur in the book?  If you are writing this 
-           in the activecode window simply print out the results rather than write them to a file.
-           
-           .. actex:: ex_11_02
+                  .. actex:: ex_11_02
 
-        .. tab:: Answer
-            
-            .. sourcecode:: python
+                        f = open('scarlet.txt', 'r')
 
-                f = open('alice.txt', 'r')
+            .. tab:: Answer
 
-                count = {}
+                  .. activecode:: ex_11_02_answer
 
-                for line in f:
-                    for word in line.split():
+                        f = open('scarlet.txt', 'r')
+                        contents = f.read()
+                        d = {}
 
-                        # remove punctuation
-                        word = word.replace('_','').replace('"','').replace(',','').replace('.','')
-                        word = word.replace('-','').replace('?','').replace('!','').replace("'","")
-                        word = word.replace('(','').replace(')','').replace(':','').replace('[','')
-                        word = word.replace(']','').replace(';','')
+                        for w in contents.split():
+                            if len(w) == 7:
+                                if w not in d:
+                                    d[w] = 1
+                                else:
+                                    d[w] = d[w] + 1
 
-                        # ignore case
-                        word = word.lower()
+                        dkeys = d.keys()
+                        most_used = dkeys[0]
+                        for k in dkeys:
+                            if d[k] > d[most_used]:
+                                most_used = k
 
-                        # ignore numbers
-                        if word.isalpha():
-                            if word in count:
-                                count[word] = count[word] + 1
-                            else:
-                                count[word] = 1
-
-                keys = count.keys()
-                keys.sort()
-
-                # save the word count analysis to a file
-                out = open('alice_words.txt', 'w')
-
-                for word in keys:
-                    out.write(word + " " + str(count[word]))
-                    out.write('\n')
-
-                print("The word 'alice' appears " + str(count['alice']) + " times in the book.")
-
-
-
-
-#. What is the longest word in Alice in Wonderland? How many characters does it have?
-
-   .. actex:: ex_11_03
-   
+                        print "The most used word is '"+most_used+"', which is used "+str(d[most_used])+" times"
+    
    
 
 .. raw:: html
