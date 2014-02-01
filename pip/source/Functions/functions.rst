@@ -197,7 +197,7 @@ executed a second time.
    :feedback_b: Check again.
    :feedback_c: When the function is invoked, it will print two lines, but it has only been defined, not invoked.
 
-   What will the output be from executing this code?
+   How many lines will be output by executing this code?
    
    .. code-block:: python
 
@@ -219,7 +219,7 @@ executed a second time.
    :feedback_d: Each time the function is invoked, it will print two lines, not one.
    :feedback_e: Three invocations generate two lines each, plus the line "It works"
 
-   What will the output be from executing this code?
+   How many lines will be output by executing this code?
 
    .. code-block:: python
 
@@ -478,7 +478,7 @@ black-box diagram with the Python code following.
 
     toSquare = 10
     result = square(toSquare)
-    print("The result of " +  toSquare + " squared is " + result)
+    print("The result of",toSquare,"squared is",result)
 
 The **return** statement is followed by an expression which is evaluated.  Its
 result is returned to the caller as the "fruit" of calling this function.
@@ -563,26 +563,6 @@ interpreter does these steps:
 
 **Check your understanding**
 
-.. mchoicemf:: test_questionfunctions_2_1
-   :answer_a: You should never use a print statement in a function definition.
-   :answer_b: You should not have any statements in a function after the return statement.  Once the function gets to the return statement it will immediately stop executing the function.
-   :answer_c: You must calculate the value of x+y+z before you return it.
-   :answer_d: A function cannot return a number.
-   :correct: b
-   :feedback_a: Although you should not mistake print for return, you may include print statements inside your functions.
-   :feedback_b: This is a very common mistake so be sure to watch out for it when you write your code!
-   :feedback_c: Python will automatically calculate the value x+y+z and then return it in the statement as it is written
-   :feedback_d: Functions can return any legal data, including (but not limited to) numbers, strings, lists, dictionaries, etc.
-
-   What is wrong with the following function definition:
-
-   .. code-block:: python
-
-     def addEm(x, y, z):
-         return x+y+z
-         print('the answer is', x+y+z)
-
-
 .. mchoicemf:: test_questionfunctions_2_2
    :answer_a: Nothing (no value)
    :answer_b: The value of x+y+z
@@ -599,7 +579,7 @@ interpreter does these steps:
     def addEm(x, y, z):
         print(x+y+z)
 
-.. mchoicemf: test_questionfunctions_2_3
+.. mchoicemf:: test_questionfunctions_2_3
    :answer_a: 25
    :answer_b: 50
    :answer_c: 25 + 25
@@ -611,23 +591,27 @@ interpreter does these steps:
    
    What will the following code output?
    
-   .. code-block:: python 
+   .. code-block:: python
+
        def square(x):
            y = x * x
            return y
            
        print(square(5) + square(5))
 
-.. mchoicemf: test_questionfunctions_2_4
+.. mchoicemf:: test_questionfunctions_2_4
    :answer_a: 8
-   :answer_b: Error: can't put a function invocation inside parentheses
-   :correct: a
-   :feedback_a: It squares 2, yielding the value 4. 4 is then passed as a value to square again
-   :feedback_b: This is a more complicated expression, but still valid. The expression square(2) is evaluated, and the return value 4 substitutes for square(2) in the expression.   
+   :answer_b: 16
+   :answer_c: Error: can't put a function invocation inside parentheses
+   :correct: b
+   :feedback_a: It squares 2, yielding the value 4. But that doesn't mean the next value multiplies 2 and 4.
+   :feedback_b: It squares 2, yielding the value 4. 4 is then passed as a value to square again, yeilding 16.
+   :feedback_c: This is a more complicated expression, but still valid. The expression square(2) is evaluated, and the return value 4 substitutes for square(2) in the expression.   
    
    What will the following code output?
    
    .. code-block:: python 
+
        def square(x):
            y = x * x
            return y
@@ -734,10 +718,5 @@ Glossary
     parameter
         A name used inside a function to refer to the value which was passed
         to it as an argument.
-
-
-Exercises
----------
-
    
 
