@@ -107,11 +107,12 @@ The problems AND the solutions are provided for you, since you worked on them in
             .. actex:: fr_1a
 
                 def get_vowels(s):
-                    vowels = "aeiou"
-                    total = 0
-                    for v in vowels:
-                        total += s.count(v)
-                    return total
+                    vowels = "aeiou" # Here's a collection of all the values I can iterate through
+                    # That could also be a list, but it's easy to just put it in a string
+                    total = 0 # I know that I want to accumulate a total amount
+                    for v in vowels: # for each one of the vowels
+                        total += s.count(v) # I want to see how many times it exists in the string input for my function and add it to my total
+                    return total # and when I've done that for all the values, return the total
 
                 print get_vowels("Hello all")
 
