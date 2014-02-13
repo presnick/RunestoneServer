@@ -178,7 +178,10 @@ The problems AND the solutions are provided for you, since you worked on them in
                 # For extra practice: you've done something like this before -- 
                 # how would you change this function to print the LONGEST word in the string?
 
-
+                # Think further:
+                # If you wrote the line of code:
+                # print common_word("hello hello hello everyone")
+                # What would print out?
 
         .. tab:: Solution
 
@@ -200,10 +203,11 @@ The problems AND the solutions are provided for you, since you worked on them in
                     for ky in d: # now that we know the value of the most common key, go through the keys of the dictionary again
                         if d[ky] == d[most_common]: # for every key that has the same value as the most common one
                             print ky, d[ky] # print the key and its value
-                            # note that we do NOT return anything here!
-                            # because we asked to print stuff out
+                    return None # because we're just printing, not returning any values in this function!
+                            
 
                 # Think further: what would happen if you put a return statement where that print statement is? why wouldn't that work?
+
 
 
 #. Define (and call!) a function called ``smallest_value_name`` that **takes a dictionary** with key-value pairs of names and integer values, like this: `` {"Nick": 56, "Paul":73, "Jackie":42} ``, and **returns the name associated with the *lowest integer value**. (So in the case of that example dictionary, the function should return `` Jackie ``.)
