@@ -87,7 +87,7 @@ def saveprog():
     def strip_suffix(id):
         idx = id.rfind('-') - 1
         return id[:idx]
-    assignment = db(db.assignments.query == strip_suffix(acid)).select().first()
+    assignment = db(db.assignments.id == db.problems.assignment)(db.problems.acid == acid).select(db.assignments.ALL).first()
     
     section_users = db((db.sections.id==db.section_users.section) & (db.auth_user.id==db.section_users.auth_user))
     section = section_users(db.auth_user.id == user.id).select(db.sections.ALL).first()
@@ -492,38 +492,39 @@ def getSphinxBuildStatus():
         return dict(status=status, traceback=tb)
 
 def getassignmentgrade():
-   #  print 'in getassignmentgrade'
-    if auth.user:
-        sid = auth.user.username
-    else:
+    response.headers['content-type'] = 'application/json'
+    if not auth.user:
         return json.dumps([dict(message="not logged in")])
 
-    response.headers['content-type'] = 'application/json'
-
     divid = request.vars.div_id
-    course_id = auth.user.course_id
-    "select grade, comment from code where sid='%s' and acid='%s' and grade is not null order by timestamp desc"
-    result = db((db.code.sid == sid) &
-                 (db.code.acid == divid) &
-                 (db.code.course_id == course_id) &
-                 (db.code.grade != None)).select(db.code.grade, db.code.comment, orderby= ~db.code.timestamp).first()
 
-    ret = {}
+    result = db(
+        (db.code.sid == auth.user.username) &
+        (db.code.acid == db.problems.acid) &
+        (db.problems.assignment == db.assignments.id) &
+        (db.assignments.released == True) &
+        (db.code.acid == divid)
+        ).select(
+            db.code.grade,
+            db.code.comment,
+        ).first()
+
+    ret = {
+        'grade':"Not graded yet",
+        'comment': "No Comments",
+        'avg': 'None',
+        'count': 'None',
+    }
     if result:
         ret['grade'] = result.grade
         if result.comment:
             ret['comment'] = result.comment
-        else:
-            ret['comment'] = "No Comments"
-    else:
-        ret['grade'] = "not graded yet"
-        ret['comment'] = "No Comments"
 
-    query = '''select avg(grade), count(grade)
-               from code where sid='%s' and course_id='%d' and grade is not null;''' % (sid, course_id)
+        query = '''select avg(grade), count(grade)
+                   from code where acid='%s';''' % (divid)
 
-    rows = db.executesql(query)
-    ret['avg'] = rows[0][0]
-    ret['count'] = rows[0][1]
+        rows = db.executesql(query)
+        ret['avg'] = rows[0][0]
+        ret['count'] = rows[0][1]
 
     return json.dumps([ret])

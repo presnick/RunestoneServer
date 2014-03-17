@@ -1,34 +1,89 @@
+db.define_table('assignment_types',
+	Field('name','string'),
+	Field('grade_type', 'string', default="additive", requires=IS_IN_SET(['additive','checkmark'])),
+	format = '%(names)s',
+	migrate='runestone_assignment_types.table',
+	)
+
 db.define_table('assignments',
 	Field('course',db.courses),
+	Field('assignment_type', db.assignment_types, requires=IS_EMPTY_OR(IS_IN_DB(db,'assignment_types.id','%(name)s'))),
 	Field('name', 'string'),
 	Field('points', 'integer'),
-	Field('query', 'string', default="", required=False),
-	Field('grade_type', 'string', default="additive", requires=IS_IN_SET(['additive','checkmark'])),
 	Field('threshold', 'integer', default=1),
+	Field('released','boolean'),
 	format='%(name)s',
 	migrate='runestone_assignments.table'
 	)
 
-def assignment_get_problems(assignment, user):
-	if 'query' not in assignment or not assignment.query:
-		return []
-	return db(db.code.acid.like(assignment.query+"%"))(db.code.sid==user.username).select(
-		db.code.ALL,
-		orderby=db.code.acid|db.code.timestamp,
-		distinct=db.code.acid,
-		)
-db.assignments.problems = Field.Method(lambda row, user: assignment_get_problems(row.assignments, user))
+class score(object):
+	def __init__(self, acid=None, points=0, comment="", user=None):
+		self.acid = acid
+		self.user = user
+		self.points = points
+		self.comment = comment
+
+def assignment_get_scores(assignment, problem=None, user=None, section_id=None):
+	scores = []
+	if problem and user:
+		pass
+	elif problem:
+		grades = db(db.code.sid == db.auth_user.username)(db.code.acid == problem).select(
+			db.code.ALL,
+			db.auth_user.ALL,
+			orderby = db.code.sid,
+			distinct = db.code.sid,
+			)
+		for g in grades:
+			scores.append(score(
+				points = g.code.grade,
+				comment = g.code.comment,
+				acid = problem,
+				user = g.auth_user,
+				))
+	elif user:
+		q = db(db.problems.acid == db.code.acid)
+		q = q(db.problems.assignment == assignment.id)
+		q = q(db.code.sid == user.username)
+		grades = q.select(
+			db.code.acid,
+			db.code.grade,
+			db.code.comment,
+			db.code.timestamp,
+			orderby=db.code.acid|db.code.timestamp,
+			distinct = db.code.acid,
+			)
+		for g in grades:
+			scores.append(score(
+				points = g.grade,
+				comment = g.comment,
+				acid = g.acid,
+				user = user,
+				))
+	else:
+		grades = db(db.grades.assignment == assignment.id).select(db.grades.ALL)
+		for g in grades:
+			scores.append(score(
+				points = g.score,
+				user = g.auth_user,
+				))
+	return scores
+db.assignments.scores = Field.Method(lambda row, problem=None, user=None, section_id=None: assignment_get_scores(row.assignments, problem, user, section_id))
+
 def assignment_set_grade(assignment, user):
 	# delete the old grades; we're regrading
 	db(db.grades.assignment == assignment.id)(db.grades.auth_user == user.id).delete()
+
+	assignment_type = db(db.assignment_types.id == assignment.id).select().first()
+	if not assignment_type:
+		# if we don't know how to grade this assignment, don't grade the assignment.
+		return 0
 	
 	points = 0.0
-	for prob in assignment.problems(user):
-		if not prob.grade:
-			continue
-		points = points + prob.grade
+	for prob in assignment.scores(user = user):
+		points = points + prob.points
 
-	if assignment.grade_type == 'checkmark':
+	if assignment_type.grade_type == 'checkmark':
 		#threshold grade
 		if points >= assignment.threshold:
 			points = assignment.points
@@ -46,50 +101,18 @@ def assignment_set_grade(assignment, user):
 	return points
 db.assignments.grade = Field.Method(lambda row, user: assignment_set_grade(row.assignments, user))
 
-def assignment_get_grades(assignment, section_id=None, problem=None):
-	""" Return a list of users with grades for assignment (or problem) """
-	if problem:
-		return assignment_get_problem_grades(problem, section_id)
+def assignment_release_grades(assignment, released=True):
+	# update problems
+	assignment.released = True
+	assignment.update_record()
+	return True
+db.assignments.release_grades = Field.Method(lambda row, released=True: assignment_release_grades(row.assignments, released))
 
-	if section_id:
-		section_users = db((db.sections.id==db.section_users.section) & (db.auth_user.id==db.section_users.auth_user))
-		users = section_users(db.auth_user.course_id == assignment.course)
-		users = users(db.sections.id == section_id)
-	else:
-		users = db(db.auth_user.course_id == assignment.course)
-	users = users.select(
-		db.auth_user.ALL,
-		orderby = db.auth_user.last_name,
-		)
-	grades = db(db.grades.assignment == assignment.id)
-	grades = grades.select(db.grades.ALL)
-	for u in users:
-		u.grade = None
-		u.comment = ""
-		for g in grades:
-			if g.auth_user.id == u.id:
-				u.grade = g.score
-	return users
-def assignment_get_problem_grades(problem, section_id=None):
-	code = db(db.code.sid == db.auth_user.username)
-	if section_id:
-		code = code((db.sections.id==db.section_users.section) & (db.auth_user.id==db.section_users.auth_user))
-		code = code(db.sections.id == section_id)
-	code = code(db.code.acid == problem)
-	code = code.select(
-		db.code.ALL,
-		db.auth_user.ALL,
-		orderby = db.code.sid|db.auth_user.last_name,
-		distinct = db.code.sid,
-		)
-	users = []
-	for c in code:
-		u = c.auth_user
-		u.grade = c.code.grade
-		u.comment = c.code.comment
-		users.append(u)
-	return users
-db.assignments.grades_get = Field.Method(lambda row, section=None, problem=None: assignment_get_grades(row.assignments, section, problem))
+db.define_table('problems',
+	Field('assignment',db.assignments),
+	Field('acid','string'),
+	migrate='runestones_problems.table',
+	)
 
 db.define_table('grades',
 	Field('auth_user', db.auth_user),

@@ -22,77 +22,81 @@
 	<li class="active"><a href="{{=URL('assignments','detail')}}?id={{=assignment.id}}">View</a></li>
 	<li><a href="{{=URL('assignments','update')}}?id={{=assignment.id}}">Edit</a></li>
 	<li><a href="{{=URL('assignments','grade')}}?id={{=assignment.id}}">Grade</a></li>
-	<li class="disabled"><a href="">Release Grades</a></li>
+	<li><a href="{{=URL('assignments','release_grades')}}?id={{=assignment.id}}">Release Grades</a></li>
 </ul>
 <div class="container-fluid">
 	<div class="row">
 		<div class="col-md-6">
 			<h3>Students</h3>
-			<ul class="nav nav-pills">
-				<li {{if not selected_section:}}class="active"{{pass}}>
-					<a href="{{=URL('assignments','detail')}}{{=page_args(section_id=None)}}">All Students</a>
-				</li>
-				{{ for row in sections: }}
-				<li {{if selected_section==row.id:}}class="active"{{pass}}>
-					<a href="{{=URL('assignments','detail')}}{{=page_args(section_id=row.id)}}">{{=row.name}}</a>
-				</li>
-				{{ pass }}
-			</ul>
 			<ul class="list-group">
-			{{for row in students:}}
-			<li class="list-group-item">
-				{{ if student and student.id == row.id: }}
-				<span class="badge">{{=row.grade}}</span>
-				<a href="{{=URL('assignments','detail')}}{{=page_args(student=None)}}">
-					<span class="glyphicon glyphicon-remove"></span>
-					{{=row.first_name}} {{=row.last_name}}
-				</a>
-				{{ else: }}
-				{{ if acid: }}
-				<span class="badge grade">{{=row.grade}}</span>
-				<a class="gradable" data-acid="{{=acid}}" data-student-id="{{=row.id}}"  href="{{=URL('assignments','detail')}}{{=page_args(student=row)}}">{{=row.first_name}} {{=row.last_name}}</a>
-				<p class="comment">{{=row.comment}}</p>
-				{{ else: }}
-				<span class="badge">{{=row.grade}}</span>
-				<a href="{{=URL('assignments','detail')}}{{=page_args(student=row)}}">{{=row.first_name}} {{=row.last_name}}</a>
+			{{for s in students:}}
+				{{ found = False }}
+				{{ for sc in scores: }}
+					{{ if not found and sc.user.id == s.id: }}
+						{{ found = True}}
+						{{ if selected_student and s.id == selected_student.id: }}
+				<li class="list-group-item">
+					<a href="{{=URL('assignments','detail')}}{{=page_args(student=None)}}">
+						<span class="glyphicon glyphicon-remove"></span>
+						{{=s.first_name}} {{=s.last_name}}
+					</a>
+				</li>
+						{{ else: }}
+				<li class="list-group-item">
+					<span class="badge grade">{{=sc.points}}</span>
+					<a {{ if sc.acid: }}class="gradable"{{ pass }} data-acid="{{=sc.acid}}" data-student-id="{{=s.username}}" href="{{=URL('assignments','detail')}}{{=page_args(student=s)}}">
+						{{=s.first_name}} {{=s.last_name}}
+					</a>
+					<p class="comment">{{=sc.comment}}</p>
+				</li>
+						{{ pass }}
+					{{ pass }}
 				{{ pass }}
+				{{ if not found: }}
+				<li class="list-group-item">
+					<a href="{{=URL('assignments','detail')}}{{=page_args(student=s)}}">
+						{{=s.first_name}} {{=s.last_name}}
+					</a>
+				</li>
 				{{ pass }}
-			</li>
 			{{pass}}
-		</ul>
+			</ul>
 		</div>
 		<div class="col-md-6">
-			{{if student:}}
-			<h3>Problems for {{=student.first_name}} {{=student.last_name}}</h3>
-			{{else:}}
 			<h3>Problems</h3>
-			{{pass}}
-			{{if len(problems) > 0:}}
 			<ul class="list-group">
-			{{for row in problems:}}
-			    <li class="list-group-item">
-			    	{{if student:}}
-					<span class="badge grade">{{=row.grade}}</span>
-					<a class="gradable" data-acid="{{=row.acid}}" data-student-id="{{=student.id}}" href="{{=URL('assignments','detail')}}{{=page_args(student=student,acid=row.acid)}}">{{=row.acid}}</a>
-					<p class="comment">{{=row.comment}}</p>
-					{{else:}}
-					{{if acid==row.acid:}}
+			{{for p in problems:}}
+				{{ found = False }}
+				{{ for sc in scores: }}
+					{{ if not found and sc.acid == p.acid: }}
+						{{ found = True }}
+						{{ if selected_acid and selected_acid == p.acid: }}
+				<li class="list-group-item">
 					<a href="{{=URL('assignments','detail')}}{{=page_args(acid=None)}}">
 						<span class="glyphicon glyphicon-remove"></span>
-						{{=row.acid}}
+						{{=p.acid}}
 					</a>
-					{{else:}}
-					<a href="{{=URL('assignments','detail')}}{{=page_args(acid=row.acid)}}">{{=row.acid}}</a>
-					{{pass}}
-					{{pass}}
-				</li>  
-				{{pass}}
-			</ul>
-			{{else:}}
-			<div class="alert alert-info">
-				<p>No Problems</p>
-			</div>
+				</li>
+						{{ else: }}
+				<li class="list-group-item">
+					<span class="badge grade">{{=sc.points}}</span>
+					<a {{ if sc.user: }}class="gradable"{{ pass }} data-acid="{{=p.acid}}" data-student-id="{{=sc.user.username}}" href="{{=URL('assignments','detail')}}{{=page_args(acid=p.acid)}}">
+						{{=p.acid}}
+					</a>
+					<p class="comment">{{=sc.comment}}</p>
+				</li>
+						{{ pass }}					
+					{{ pass }}
+				{{ pass }}
+				{{ if not found: }}
+				<li class="list-group-item">
+					<a href="{{=URL('assignments','detail')}}{{=page_args(acid=p.acid)}}">
+						{{=p.acid}}
+					</a>
+				</li>
+				{{ pass }}
 			{{pass}}
+			</ul>
 		</div>
 	</div>
 </div>

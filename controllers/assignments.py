@@ -24,10 +24,19 @@ def index():
 	if not student:
 		return redirect(URL('assignments','index'))
 
+	assignment_type = None
+	if 'atid' in request.vars:
+		assignment_type = db(db.assignment_types.id == int(request.vars.atid)).select().first()
+	assignment_types = db(db.assignment_types).select()
+
+
 	course = db(db.courses.id == auth.user.course_id).select().first()
 	assignments = db(db.assignments.id == db.grades.assignment)
 	assignments = assignments(db.assignments.course == course.id)
 	assignments = assignments(db.grades.auth_user == student.id)
+	assignments = assignments(db.assignments.released == True)
+	if assignment_type:
+		assignments = assignments(db.assignments.assignment_type == assignment_type.id)
 	assignments = assignments.select(
 		db.assignments.ALL,
 		db.grades.ALL,
@@ -48,6 +57,8 @@ def index():
 	last_action = db(db.useinfo.sid == student.username)(db.useinfo.course_id == course.course_name).select(orderby=~db.useinfo.timestamp).first()
 
 	return dict(
+		types = assignment_types,
+		assignment_type = assignment_type,
 		assignments = assignments,
 		student = student,
 		last_action = last_action,
@@ -89,10 +100,9 @@ def update():
 	course = db(db.courses.id == auth.user.course_id).select().first()
 	assignment = db(db.assignments.id == request.get_vars.id).select().first()
 
-	db.assignments.grade_type.widget = SQLFORM.widgets.radio.widget
 	form = SQLFORM(db.assignments, assignment,
 	    showid = False,
-	    fields=['name','points','query','grade_type','threshold'],
+	    fields=['name','points','assignment_type','threshold','released'],
 	    keepvalues = True,
 	    formstyle='table3cols',
 	    )
@@ -103,6 +113,8 @@ def update():
 		return redirect(URL('assignments','update')+'?id=%d' % (form.vars.id))
 	elif form.errors:
 		response.flash = 'form has errors'
+
+
 	new_deadline_form = SQLFORM(db.deadlines,
 		showid = False,
 		fields=['section','deadline'],
@@ -137,11 +149,75 @@ def update():
 			_class="btn btn-default"
 			))
 
-	if delete_deadline_form.accepts(request,session):
+	if delete_deadline_form.accepts(request,session, formname="delete_deadline_form"):
 		for var in delete_deadline_form.vars:
 			if delete_deadline_form.vars[var] == "delete":
 				db(db.deadlines.id == var).delete()
 		session.flash = 'Deleted deadline(s)'
+		return redirect(URL('assignments','update')+'?id=%d' % (assignment.id))
+
+	problems_delete_form = FORM(
+		_method="post",
+		_action=URL('assignments','update')+'?id=%d' % (assignment.id)
+		)
+	for problem in db(db.problems.assignment == assignment.id).select(
+		db.problems.id,
+		db.problems.acid,
+		orderby=db.problems.acid):
+		problems_delete_form.append(
+		DIV(
+			LABEL(
+			INPUT(_type="checkbox", _name=problem.id, _value="delete"),
+			problem.acid,
+			),
+			_class="checkbox"
+		))
+	problems_delete_form.append(
+		INPUT(
+			_type="submit",
+			_value="Remove Problems",
+			_class="btn btn-default"
+			))
+	if problems_delete_form.accepts(request, session, formname="problems_delete_form"):
+		count = 0
+		for var in problems_delete_form.vars:
+			if problems_delete_form.vars[var] == "delete":
+				db(db.problems.id == var).delete()
+				count += 1
+		if count > 0:
+			session.flash = "Removed %d Problems" % (count)
+		else:
+			session.flash = "Didn't remove any problems"
+		return redirect(URL('assignments','update')+'?id=%d' % (assignment.id))
+
+
+	problem_query_form = FORM(
+		_method="post",
+		_action=URL('assignments','update')+'?id=%d' % (assignment.id)
+		)
+	problem_query_form.append(
+		INPUT(
+			_type="text",
+			_name="acid"
+			))
+	problem_query_form.append(
+		INPUT(
+			_type="submit",
+			_value="Search"
+			))
+	if problem_query_form.accepts(request,session,formname="problem_query_form"):		
+		if 'acid' in problem_query_form.vars:
+			acid = problem_query_form.vars['acid']
+			if db(db.problems.acid == acid)(db.problems.assignment == assignment.id).select().first():
+				session.flash = "ACID %s already exists for assignment." % (acid)
+				return redirect(URL('assignments','update')+'?id=%d' % (assignment.id))
+			db.problems.insert(
+				assignment = assignment.id,
+				acid = acid,
+				)
+			session.flash = "Added %s problems" % (acid)
+		else:
+			session.flash = "Didn't add any problems."
 		return redirect(URL('assignments','update')+'?id=%d' % (assignment.id))
 
 	return dict(
@@ -149,6 +225,8 @@ def update():
 		form = form,
 		new_deadline_form = new_deadline_form,
 		delete_deadline_form = delete_deadline_form,
+		problem_query_form = problem_query_form,
+		problems_delete_form = problems_delete_form,
 		)
 
 @auth.requires(lambda: verifyInstructorStatus(auth.user.course_name, auth.user), requires_login=True)
@@ -166,6 +244,17 @@ def grade():
 	return redirect("%s?id=%d" % (URL('assignments','detail'), assignment.id))
 
 @auth.requires(lambda: verifyInstructorStatus(auth.user.course_name, auth.user), requires_login=True)
+def release_grades():
+	course = db(db.courses.id == auth.user.course_id).select().first()
+	assignment = db(db.assignments.id == request.get_vars.id).select().first()
+
+	if assignment.release_grades():
+		session.flash = "Grades Relased"
+	if request.env.HTTP_REFERER:
+		return redirect(request.env.HTTP_REFERER)
+	return redirect("%s?id=%d" % (URL('assignments','detail'), assignment.id))
+
+@auth.requires(lambda: verifyInstructorStatus(auth.user.course_name, auth.user), requires_login=True)
 def detail():
 	course = db(db.courses.id == auth.user.course_id).select().first()
 	assignment = db(db.assignments.id == request.vars.id)(db.assignments.course == course.id).select().first()
@@ -176,27 +265,26 @@ def detail():
 	selected_section = None
 	if "section_id" in request.vars:
 		selected_section = int(request.vars.section_id)
-	acid = None
-	if "acid" in request.vars:
-		acid = request.vars.acid
 
-	students = assignment.grades_get(section=selected_section, problem=acid)
+
+	students = db(db.auth_user.course_id == course.id)
+	if selected_section:
+		# filter by section
+		pass
+	students = students.select(db.auth_user.ALL)
+	problems = db(db.problems.assignment == assignment.id).select(db.problems.ALL)
 	
+	# getting scores	
 	student = None
 	if 'sid' in request.vars:
 		student_id = request.vars.sid
 		student = db(db.auth_user.id == student_id).select().first()
-		problems = assignment.problems(student)
-	else:
-	    q = db(db.code.course_id == auth.user.course_id)
-	    q = q(db.code.acid.like(assignment.query+"%"))
-	    problems = q.select(
-	    	db.code.acid,
-	    	db.code.course_id,
-	    	orderby = db.code.acid,
-	    	distinct = db.code.acid,
-	    	)
+		acid = None
+	acid = None
+	if "acid" in request.vars:
+		acid = request.vars.acid
 
+	scores = assignment.scores(problem = acid, user=student, section_id=selected_section)
 	# Used as a convinence function for navigating within the page template
 	def page_args(id=assignment.id, section_id=selected_section, student=student, acid=acid):
 		arg_str = "?id=%d" % (id)
@@ -212,11 +300,12 @@ def detail():
 		assignment = assignment,
 		problems = problems,
 		students = students,
-		student = student,
+		selected_student = student,
+		scores = scores,
 		sections = sections,
 		selected_section = selected_section,
 		page_args = page_args,
-		acid = acid,
+		selected_acid = acid,
 		course_id = auth.user.course_name,
 		gradingUrl = URL('assignments', 'problem'),
 		)
@@ -226,9 +315,20 @@ import json
 def problem():
 	if 'acid' not in request.vars or 'sid' not in request.vars:
 		return json.dumps({'success':False})
+
+	# maybe not in this order?
+	if 'grade' in request.vars and 'comment' in request.vars:
+		grade = float(request.vars.grade)
+		comment = request.vars.comment
+		db((db.code.acid == request.vars.acid) &
+			(db.code.sid == request.vars.sid)
+			).update(
+			grade = grade,
+			comment = comment,
+			)
 	q = db(db.code.sid == db.auth_user.username)
 	q = q(db.code.acid == request.vars.acid)
-	q = q(db.auth_user.id == request.vars.sid)
+	q = q(db.auth_user.username == request.vars.sid)
 	q = q.select(
 		db.auth_user.ALL,
 		db.code.ALL,
@@ -237,18 +337,55 @@ def problem():
 		).first()
 	if not q:
 		return json.dumps({'success':False})
-	if 'grade' in request.vars:
-		q.code.grade = float(request.vars.grade)
-	if 'comment' in request.vars:
-		q.code.comment = request.vars.comment
-	if 'grade' in request.vars or 'comment' in request.vars:
-		q.code.update_record()
-	return json.dumps({
+	res = {
 		'id':"%s-%d" % (q.code.acid, q.auth_user.id),
 		'acid':q.code.acid,
-		'sid':q.auth_user.username,
+		'sid':int(q.auth_user.id),
+		'username':q.auth_user.username,
 		'name':"%s %s" % (q.auth_user.first_name, q.auth_user.last_name),
 		'code':q.code.code,
 		'grade':q.code.grade,
 		'comment':q.code.comment,
-		})
+		}
+	if res['grade'] == None:
+		res['grade'] = 0
+	if res['comment'] == None:
+		res['comment'] = ""
+	return json.dumps(res)
+
+def migrate_to_scores():
+	""" Temp command to migrate db.code grades to db.score table """
+
+	accumulated_scores = {}
+	code_rows = db(db.code.grade != None).select(
+		db.code.ALL,
+		orderby = db.code.acid|db.code.timestamp,
+		distinct = db.code.acid,
+		)
+	for row in code_rows:
+		if row.sid not in accumulated_scores:
+			accumulated_scores[row.sid] = {}
+		if row.acid not in accumulated_scores[row.sid]:
+			accumulated_scores[row.sid][row.acid] = {
+				'score':row.grade,
+				'comment':row.comment,
+				}
+	acid_count = 0
+	user_count = 0
+	for sid in accumulated_scores:
+		user = db(db.auth_user.username == sid).select().first()
+		if not user:
+			continue
+		user_count += 1
+		for acid in accumulated_scores[sid]:
+			db.scores.update_or_insert(
+				((db.scores.acid == acid) & (db.scores.auth_user == user.id)),
+				acid = acid,
+				auth_user = user.id,
+				score = accumulated_scores[sid][acid]['score'],
+				comment = accumulated_scores[sid][acid]['comment'],
+				)
+			acid_count += 1
+	session.flash = "Set %d scores for %d users" % (acid_count, user_count)
+	return redirect(URL("assignments","index"))
+
