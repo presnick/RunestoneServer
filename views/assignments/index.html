@@ -1,26 +1,20 @@
 {{extend 'layout.html'}}
 <h1>{{=student.first_name}} {{=student.last_name}}</h1>
-<p class="grade"><strong>{{=student.points_total}} points</strong> of {{=student.points_possible}} points (or {{=student.points_percentage}}%)</p>
+<div class="grade">
+	<p><strong>{{=grade.total}} points</strong> of {{=grade.possible}} points (or {{=grade.percent()}})</p>
+	<p>Based on your progress, we expect you can get {{=grade.projected}} points of {{=grade.absolute}} total points.</p>
+</div>
 {{ if last_action: }}
 <p class="last_action"><em>Last Action: {{=last_action.timestamp}}</em></p>
 {{ pass }}
-<h2>Assignments</h2>
-<ul class="nav nav-pills">
-	<li {{if not assignment_type:}}class="active"{{pass}}>
-		<a href="{{=URL('assignments','index')}}?sid={{=student.id}}">
-			All
-		</a>
-	</li>
-	{{ for type in types: }}
-	<li {{if assignment_type and assignment_type.id==type.id:}}class="active"{{pass}}>
-		<a href="{{=URL('assignments','index')}}?sid={{=student.id}}&atid={{=type.id}}">
-			{{=type.name}}
-		</a>
-	</li>
-	{{ pass }}
-</ul>
 <div class="panel-group" id="assignments">
-{{for row in assignments:}}
+{{ for type in types: }}
+	{{ type_found = False }}
+	<h2>{{=type.name}}</h2>
+	<p class="grade"><strong>{{=type.grade.total}} points</strong> of {{=type.grade.possible}} points (or {{=type.grade.percent()}})</p>
+	{{for row in assignments:}}
+		{{ if row.assignments.assignment_type == type.id: }}
+			{{ type_found = True }}
     <div class="panel panel-default">
 		<div class="panel-heading">
 			<a data-toggle="collapse" data-parent="#assignments" href="#assignment-{{=row.assignments.id}}">
@@ -48,5 +42,10 @@
 	      </div>
 		</div>
 	</div><!-- end .panel -->
+		{{pass}}
     {{pass}}
-</div>
+    {{ if not type_found: }}
+	<div class="alert alert-info">No {{=type.name}} Assignments</div>
+    {{ pass }}
+{{ pass }}
+</div><!-- end #assignments -->

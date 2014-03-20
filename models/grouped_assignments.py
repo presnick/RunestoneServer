@@ -1,6 +1,56 @@
+class Grade(object):
+	def __init__(self):
+		self.total = 0
+		self.possible = 0
+		self.num_assignments = 0
+
+	def percent(self, points=None):
+		if points == None:
+			points = self.total
+		if self.possible == 0:
+			return "0%"
+		percent = round((points/self.possible)*100)
+		return "%d%%" % (percent)
+
+def student_grade(user=None, course=None, assignment_type=None, predictive=False):
+	grade = Grade()
+	if not user or not course:
+		return grade
+	assignments = db(db.assignments.id == db.grades.assignment)
+	assignments = assignments(db.assignments.course == course.id)
+	assignments = assignments(db.grades.auth_user == user.id)
+	if not predictive:
+		assignments = assignments(db.assignments.released == True)
+	if assignment_type:
+		assignments = assignments(db.assignments.assignment_type == assignment_type.id)
+	assignments = assignments.select(
+		db.assignments.ALL,
+		db.grades.ALL,
+		orderby = db.assignments.name,
+		)
+	absolute_possible_points = 0
+	remaining_points = 0
+	print assignments
+	for row in assignments:
+		if not predictive or (predictive and row.assignments.released):
+			grade.total += row.grades.score
+			grade.possible += row.assignments.points
+			grade.num_assignments += 1
+		if predictive and not row.assignments.released:
+			remaining_points += row.assignments.points
+		absolute_possible_points += row.assignments.points
+
+	if predictive and grade.possible > 0:
+		grade.absolute = absolute_possible_points
+		grade.min = grade.total
+		grade.max = grade.total + remaining_points
+		grade.projected = grade.total + remaining_points*(grade.total/grade.possible)
+
+	return grade
+
 db.define_table('assignment_types',
 	Field('name','string'),
-	Field('grade_type', 'string', default="additive", requires=IS_IN_SET(['additive','checkmark'])),
+	Field('grade_type', 'string', default="additive", requires=IS_IN_SET(['additive','checkmark','use'])),
 	format = '%(names)s',
 	migrate='runestone_assignment_types.table',
 	)
@@ -81,10 +131,15 @@ def assignment_set_grade(assignment, user):
 		return 0
 	
 	points = 0.0
-	for prob in assignment.scores(user = user):
-		points = points + prob.points
+	if assignment_type.grade_type == 'use':
+		for problem in db(db.problems.assignment == assignment.id).select():
+			if db(db.useinfo.div_id == problem.acid)(db.useinfo.sid == user.username).select().first():
+				points += 1
+	else:
+		for prob in assignment.scores(user = user):
+			points = points + prob.points
 
-	if assignment_type.grade_type == 'checkmark':
+	if assignment_type.grade_type in ['checkmark','use']:
 		#threshold grade
 		if points >= assignment.threshold:
 			points = assignment.points
