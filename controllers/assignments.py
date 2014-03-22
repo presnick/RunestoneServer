@@ -35,17 +35,20 @@ def index():
 		orderby = db.assignments.name,
 		)
 
-	assignment_types = db(db.assignment_types).select()
+	grade = Grade()
+	assignment_types = db(db.assignment_types).select(db.assignment_types.ALL, orderby=db.assignment_types.name)
 	for t in assignment_types:
-		t.grade = student_grade(user = student, course = course, assignment_type=t, predictive=True)
-
+		t.grade = student_grade(user = student, course = course, assignment_type=t)
+		grade.points += t.grade.points*t.grade.weight
+		grade.total += t.grade.total*t.grade.weight
+		grade.possible += t.grade.possible*t.grade.weight
 	last_action = db(db.useinfo.sid == student.username)(db.useinfo.course_id == course.course_name).select(orderby=~db.useinfo.timestamp).first()
 
 	return dict(
 		types = assignment_types,
 		assignments = assignments,
 		student = student,
-#		grade = student_grade(user = student, course=course, predictive=True),
+		grade = grade,
 		last_action = last_action,
 		)
 
@@ -308,9 +311,6 @@ def detail():
 		if acid:
 			arg_str += "&acid=%s" % acid
 		return arg_str
-
-	print "***** DEBUGGINGIGNIGNG ******"
-	print student
 
 	return dict(
 		assignment = assignment,

@@ -1,48 +1,74 @@
 {{extend 'layout.html'}}
 <h1>{{=student.first_name}} {{=student.last_name}}</h1>
-
-{{ if last_action: }}
-<p class="last_action"><em>Last Action: {{=last_action.timestamp}}</em></p>
-{{ pass }}
+<div class="row">
+	<div class="col-md-8">
+		{{ if last_action: }}
+		<p class="last_action"><em>Last Action: {{=last_action.timestamp}}</em></p>
+		{{ pass }}
+	</div>
+	<div class="col-md-4" style="text-align:center;">
+		<div class="row">
+			<div class="col-md-4">Current Points</div>
+			<div class="col-md-4">Projected Points</div>
+			<div class="col-md-4">Maximum Points</div>
+		</div>
+		<div class="row">
+			<div class="col-md-4"><span class="hidden">Current Points:</span> {{=grade.current()}}</div>
+			<div class="col-md-4"><span class="hidden">Current Points:</span> {{=grade.projected()}}</div>
+			<div class="col-md-4"><span class="hidden">Current Points:</span> {{=grade.max()}}</div>
+		</div>
+	</div>
+</div>
 <div class="panel-group" id="assignments">
 {{ for type in types: }}
-	{{ type_found = False }}
 	<h2>{{=type.name}}</h2>
-	<p class="grade"><strong>{{=type.grade.total}} points</strong> of {{=type.grade.possible}} points (or {{=type.grade.percent()}})</p>
-	{{for row in assignments:}}
-		{{ if row.assignments.assignment_type == type.id: }}
-			{{ type_found = True }}
-    <div class="panel panel-default">
-		<div class="panel-heading">
-			<a data-toggle="collapse" data-parent="#assignments" href="#assignment-{{=row.assignments.id}}">
-				{{=row.assignments.name}}
-			</a>
-			<div class="pull-right"><strong>{{=row.grades.score}} points</strong> of {{=row.assignments.points}} points</div>
+	<div class="row">
+		<div class="col-md-8">
+			<p class="grade"><strong>{{=type.grade.points}} points</strong> of {{=type.grade.total}} points (or {{=type.grade.percent()}})</p>
+			{{ type_found = False }}
+			{{for row in assignments:}}
+				{{ if row.assignments.assignment_type == type.id: }}
+					{{ type_found = True }}
+		    <div class="panel panel-default">
+				<div class="panel-heading">
+					<a data-toggle="collapse" data-parent="#assignments" href="#assignment-{{=row.assignments.id}}">
+						{{=row.assignments.name}}
+					</a>
+					<div class="pull-right"><strong>{{=row.grades.score}} points</strong> of {{=row.assignments.points}} points</div>
+				</div>
+				<div id="assignment-{{=row.assignments.id}}" class="panel-collapse collapse">
+			      <div class="panel-body">
+			      	<ul class="list-group">
+			      	{{ problems = row.assignments.scores(user = student)}}
+			      	{{for problem in problems:}}
+			      		<li class="list-group-item">
+			      			<span class="badge">{{=problem.points}}</span>
+			      			<h4>{{=problem.acid}}</h4>
+			      			{{if problem.comment:}}
+			      			<p>{{=problem.comment}}</p>
+			      			{{pass}}
+			      		</li>
+			      	{{pass}}
+			      	{{ if len(problems) < 1: }}
+			      		<div class="alert alert-info">No Problems Recorded</div>
+			      	{{pass}}
+			      	</ul>
+			      </div>
+				</div>
+			</div><!-- end .panel -->
+				{{pass}}
+		    {{pass}}
+		    {{ if not type_found: }}
+			<div class="alert alert-info">No {{=type.name}} Assignments</div>
+		    {{ pass }}
 		</div>
-		<div id="assignment-{{=row.assignments.id}}" class="panel-collapse collapse">
-	      <div class="panel-body">
-	      	<ul class="list-group">
-	      	{{ problems = row.assignments.scores(user = student)}}
-	      	{{for problem in problems:}}
-	      		<li class="list-group-item">
-	      			<span class="badge">{{=problem.points}}</span>
-	      			<h4>{{=problem.acid}}</h4>
-	      			{{if problem.comment:}}
-	      			<p>{{=problem.comment}}</p>
-	      			{{pass}}
-	      		</li>
-	      	{{pass}}
-	      	{{ if len(problems) < 1: }}
-	      		<div class="alert alert-info">No Problems Recorded</div>
-	      	{{pass}}
-	      	</ul>
-	      </div>
+		<div class="col-md-4" style="text-align:center;">
+			<div class="row">
+				<div class="col-md-4"><span class="hidden">Current Points:</span> {{=type.grade.current()}}</div>
+				<div class="col-md-4"><span class="hidden">Current Points:</span> {{=type.grade.projected()}}</div>
+				<div class="col-md-4"><span class="hidden">Current Points:</span> {{=type.grade.max()}}</div>
+			</div>
 		</div>
-	</div><!-- end .panel -->
-		{{pass}}
-    {{pass}}
-    {{ if not type_found: }}
-	<div class="alert alert-info">No {{=type.name}} Assignments</div>
-    {{ pass }}
+	</div>
 {{ pass }}
 </div><!-- end #assignments -->
