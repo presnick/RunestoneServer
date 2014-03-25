@@ -324,6 +324,7 @@ def detail():
 		selected_acid = acid,
 		course_id = auth.user.course_name,
 		gradingUrl = URL('assignments', 'problem'),
+		massGradingURL = URL('assignments', 'mass_grade_problem'),
 		)
 
 import json
@@ -388,6 +389,46 @@ def problem():
 			'comment':q.code.comment,
 			}
 	return json.dumps(res)
+
+def mass_grade_problem():
+	if 'csv' not in request.vars or 'acid' not in request.vars:
+		return json.dumps({"success":False})
+	scores = []
+	for row in request.vars.csv.split("\n"):
+		cells = row.split(",")
+		if len(cells) < 2:
+			continue
+		email = cells[0]
+		grade = float(cells[1])
+		comment = ""
+		user = db(db.auth_user.email == email).select().first()
+		if user == None:
+			continue
+		q = db(db.code.acid == request.vars.acid)(db.code.sid == user.username).select().first()
+		if not q:
+			db.code.insert(
+				acid = request.vars.acid,
+				sid = user.username,
+				grade = request.vars.grade,
+				comment = request.vars.comment,
+				)
+		else:
+			db((db.code.acid == request.vars.acid) &
+				(db.code.sid == user.username)
+				).update(
+				grade = grade,
+				comment = comment,
+				)
+		scores.append({
+			'acid':request.vars.acid,
+			'username':user.username,
+			'grade':grade,
+			'comment':comment,
+			})
+	return json.dumps({
+		"success":True,
+		"scores":scores,
+		})
 
 def migrate_to_scores():
 	""" Temp command to migrate db.code grades to db.score table """
