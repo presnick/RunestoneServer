@@ -39,8 +39,12 @@
 				</div>
 				<div id="assignment-{{=row.assignments.id}}" class="panel-collapse collapse">
 			      <div class="panel-body">
+			      	{{ problems = row.assignments.scores(user = student)}}
+			      	{{ completed_problems = [p for p in problems if p.points > 0]}}
+			      	{{ if type.grade_type == 'use':}}
+			      	<p>You completed {{=len(completed_problems)}} problems. You needed to do {{=row.assignments.threshold}} to get full credit.</p>
+			      	{{ pass }}
 			      	<ul class="list-group">
-               	{{ problems = row.assignments.scores(user = student)}}
 			      	{{for problem in problems:}}
 			      		<li class="list-group-item">
 			      			<span class="badge">{{=problem.points}}</span>

@@ -141,7 +141,33 @@ class score(object):
         self.points = points
         self.comment = comment
 
+def assignment_get_use_scores(assignment, problem=None, user=None, section_id=None):
+    scores = []
+    if problem and user:
+        pass
+    elif problem:
+        pass
+    elif user:
+        attempted_problems = db(db.useinfo.div_id == db.problems.acid)(db.problems.assignment == assignment.id)(db.useinfo.sid == user.username).select(db.problems.acid)
+        for problem in db(db.problems.assignment == assignment.id).select(db.problems.acid):
+            matches = [x for x in attempted_problems if x.acid == problem.acid]
+            points = 0
+            if len(matches) > 0:
+                points = 1
+            scores.append(score(
+                points = points,
+                acid = problem.acid,
+                user = user,
+                ))
+    else:
+        pass
+    return scores
+
+
 def assignment_get_scores(assignment, problem=None, user=None, section_id=None):
+    assignment_type = db(db.assignment_types.id == assignment.assignment_type).select().first()
+    if assignment_type and assignment_type.grade_type == 'use':
+        return assignment_get_use_scores(assignment, problem, user, section_id)
     scores = []
     if problem and user:
         pass
