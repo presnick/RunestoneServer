@@ -272,5 +272,37 @@ Problem Set
     .. actex:: ps_1_9
       :include: addl_functions, test_framework
 
+
       another_variable = "?!"
       b = another_variable()
+
+      ====
+
+      print "\n\n---\n"
+      print "(There are no tests for this problem.)"
+
+#. This code causes an error. Fix it so that it works, with no errors. (Hint: it may help to make comments about what each line does and think about what's happening at each step, and what type each variable holds as the code runs.)
+
+    .. actex:: ps_1_10
+      :include: addl_functions, test_framework
+
+      num = random_digit
+      another_num = square(2)
+      print num + another_num
+
+      y = 6
+      final_num = "hello" + y
+
+      tr = sqre(6)
+
+      b =  18 + tr
+
+      ====
+
+      print "\n\n---\n"
+      testEqual(b,18+square(6))
+      testType(num,"int")
+      testType(final_num,"string")
+
+
+
