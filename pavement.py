@@ -59,7 +59,7 @@ def thinkcspy(options):
     os.chdir("..")
 
     if minify_js:
-        sh('./minifyjs.py %s' % "static/thinkcspy")
+        sh('./scripts/minifyjs.py %s' % "static/thinkcspy")
 
 @task
 @cmdopts([('all','a','rebuild everything')])
@@ -76,7 +76,7 @@ def pythonds(options):
     os.chdir("..")
 
     if minify_js:
-        sh('./minifyjs.py %s' % "static/pythonds")
+        sh('./scripts/minifyjs.py %s' % "static/pythonds")
 
 @task
 @cmdopts([('all','a','rebuild everything')])
@@ -93,24 +93,41 @@ def overview(options):
     os.chdir("..")
 
     if minify_js:
-        sh('./minifyjs.py %s' % "static/overview")
+        sh('./scripts/minifyjs.py %s' % "static/overview")
 
 @task
 @cmdopts([('all','a','rebuild everything')])
-def devcourse(options):
+def pip(options):
     # project-specific pavements have defaults set but we can override here
     params = ["paver", "build", # task name
               "--masterapp", master_app,
               "--masterurl", master_url]
-    if 'all' in options.devcourse:
+    if 'all' in options.pip:
         params.append("-a")
 
-    os.chdir("devcourse")
+    os.chdir("pip")
     subprocess.call(params)
     os.chdir("..")
 
     if minify_js:
-        sh('./minifyjs.py %s' % "static/devcourse")
+        sh('./scripts/minifyjs.py %s' % "static/devcourse")
+
+@task
+@cmdopts([('all','a','rebuild everything')])
+def pip2(options):
+    # project-specific pavements have defaults set but we can override here
+    params = ["paver", "build", # task name
+              "--masterapp", master_app,
+              "--masterurl", master_url]
+    if 'all' in options.pip2:
+        params.append("-a")
+
+    os.chdir("pip2")
+    subprocess.call(params)
+    os.chdir("..")
+
+    if minify_js:
+        sh('./scripts/minifyjs.py %s' % "static/devcourse")
 
 @task
 @cmdopts([('all','a','rebuild everything')])
@@ -151,6 +168,7 @@ def allbooks(options):
     if 'all' in options.allbooks:
         opts['all'] = True
 
+<<<<<<< HEAD
     #options.thinkcspy = opts
     #options.pythonds = opts
     #options.overview = opts
@@ -161,3 +179,16 @@ def allbooks(options):
     #overview(options)
 
 
+=======
+    options.thinkcspy = opts
+    options.pythonds = opts
+    options.overview = opts
+    options.pip = opts
+    options.pip2 = opts
+
+    thinkcspy(options)
+    pythonds(options)
+    overview(options)
+    pip(options)
+    pip2(options)
+>>>>>>> upstream/master

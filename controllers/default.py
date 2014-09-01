@@ -7,6 +7,9 @@ def user():
     # this is kinda hacky but it's the only way I can figure out how to pre-populate
     # the course_id field
 
+    if 'everyday' in request.env.http_host:
+        redirect('http://interactivepython.org/runestone/everyday')
+
     if not request.args(0):
         redirect(URL('default', 'user/login'))
 
@@ -33,10 +36,16 @@ def user():
 
     form = auth()
 
+    if 'profile' in request.args(0):
+        my_extra_element = TR(LABEL('Section Name'),
+                           INPUT(_name='section', value='default', _type='text'))
+        form[0].insert(-1, my_extra_element)
+
     if 'register' in request.args(0) and request.janrain_form:
         # add the Janrain login form
         form[0][5][2] = ''
         form = (DIV(form, request.janrain_form.login_form()))
+
 
     if 'profile' in request.args(0):
         form.vars.course_id = auth.user.course_name
@@ -44,13 +53,25 @@ def user():
             # auth.user session object doesn't automatically update when the DB gets updated
             auth.user.update(form.vars)
             auth.user.course_name = db(db.auth_user.id == auth.user.id).select()[0].course_name
+            chapter_label = db(db.chapters.course_id == auth.user.course_name).select()[0].chapter_label
+            if db((db.user_sub_chapter_progress.user_id == auth.user.id) & (db.user_sub_chapter_progress.chapter_id == chapter_label)).count() == 0:
+                db.executesql('''
+                   INSERT INTO user_sub_chapter_progress(user_id, chapter_id,sub_chapter_id, status)
+                   SELECT %s, chapters.chapter_label, sub_chapters.sub_chapter_label, -1
+                   FROM chapters, sub_chapters where sub_chapters.chapter_id = chapters.id and chapters.course_id = '%s';
+                ''' % (auth.user.id, auth.user.course_name))
+            # Add user to default section for course.
+            sect = db((db.sections.course_id == auth.user.course_id) & (db.sections.name == form.vars.section)).select(db.sections.id).first()
+            if sect:
+                x = db.section_users.update_or_insert(auth_user=auth.user.id, section=sect)
+            # select from sections where course_id = auth_user.course_id and section.name = 'default'
+            # add a row to section_users for this user with the section selected.
             redirect(URL('default', 'index'))
 
     if 'login' in request.args(0):
         # add info text re: using local auth. CSS styled to match text on Janrain form
         sign_in_text = TR(TD('Sign in with your Runestone Interactive account', _colspan='3'), _id='sign_in_text')
         form[0][0].insert(0, sign_in_text)
-
 
     # this looks horrible but it seems to be the only way to add a CSS class to the submit button
     try:
@@ -67,13 +88,33 @@ def call(): return service()
 @auth.requires_login()
 def index():
     course = db(db.courses.id == auth.user.course_id).select(db.courses.course_name).first()
-    
+
     if 'boguscourse' in course.course_name:
         # if login was handled by Janrain, user didn't have a chance to choose the course_id;
         # redirect them to the profile page to choose one
         redirect('/%s/default/user/profile?_next=/%s/default/index' % (request.application, request.application))
     else:
+        try:
+            chapter_label = db(db.chapters.course_id == auth.user.course_name).select()[0].chapter_label
+            if db(db.user.sub_chapter_progress.user_id == auth.user.id).count() == 0:
+                if db((db.user_sub_chapter_progress.user_id == auth.user.id) & (
+                            db.user_sub_chapter_progress.chapter_id == chapter_label)).count() == 0:
+                    db.executesql('''
+                       INSERT INTO user_sub_chapter_progress(user_id, chapter_id,sub_chapter_id, status)
+                       SELECT %s, chapters.chapter_label, sub_chapters.sub_chapter_label, -1
+                       FROM chapters, sub_chapters where sub_chapters.chapter_id = chapters.id and chapters.course_id = '%s';
+                    ''' % (auth.user.id, auth.user.course_name))
+                # Add user to default section for course.
+                sect = db((db.sections.course_id == auth.user.course_id) & (db.sections.name == form.vars.section)).select(
+                    db.sections.id).first()
+                if sect:
+                    x = db.section_users.update_or_insert(auth_user=auth.user.id, section=sect)
+        except:
+            session.flash = "Your course is not set up to track your progress"
+
         redirect('/%s/static/%s/index.html' % (request.application,course.course_name))
+
+    cohortId = db(db.auth_user.id == auth.user.id).select(db.auth_user.cohort_id).first()
 
 def error():
     return dict()
@@ -84,33 +125,4 @@ def about():
 def ack():
     return dict()
 
-@auth.requires_login()
-def bio():
-    existing_record = db(db.user_biography.user_id == auth.user.id).select().first()
-    db.user_biography.laptop_type.widget = SQLFORM.widgets.radio.widget
-    form = SQLFORM(db.user_biography, existing_record,
-        showid = False,
-        fields=['prefered_name', 'interesting_fact', 'programming_experience', 'laptop_type', 'image'],
-        keepvalues = True,
-        upload=URL('download'),
-        formstyle='table3cols',
-        col3={'prefered_name': "Name you would like to be called by in class. Pronunciation hints are also welcome!",
-              'interesting_fact': "Tell me something interesting about your outside activities that you wouldn't mind my mentioning in class. For example, are you the goalie for the UM soccer team? An officer in a club or fraternity? an expert on South American insects? going into the Peace Corps after graduation? have a company that you started last summer? have an unusual favorite color?",
-              'programming_experience': "Have you ever done any programming before? If so, please describe briefly. (Note: no prior programming experience is required for this course. I just like to know whether you have programmed before.)",
-              'image': 'I use a flashcard app to help me learn student names. Please provide a recent photo. (Optional. If you have religious or privacy or other objections to providing a photo, feel free to skip this.)',
-              'laptop_type': "Do you have a laptop you can bring to class? If so, what kind?"}
-        )
-    form.vars.user_id = auth.user.id
-    if form.process().accepted:
-        session.flash = 'form accepted'
-        redirect(URL('default','bio'))
-    elif form.errors:
-        response.flash = 'form has errors'
-    return dict(form=form)
-
-
-@auth.requires(lambda: verifyInstructorStatus(auth.user.course_name, auth.user), requires_login=True)
-def bios():
-    # go to /default/bios and then click on TSV (not CSV) to export properly with First and Last names showing instead of id
-    bios = SQLFORM.grid(db.user_biography)
-    return dict(bios=bios)
+    

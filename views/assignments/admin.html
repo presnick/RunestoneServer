@@ -4,6 +4,22 @@
 	<div class="row">
 		<div class="col-md-6">
 			<h2>Students</h2>
+			{{ if len(sections) > 0:}}
+			<form class="form-inline" action="" method="get">
+				<div class="form-group">
+					<label for="sectionSelect" class="hidden">Filter Students</label>
+					<select id="sectionSelect" class="form-control" name="section_id">
+						<option value="">All Students</option>
+					{{for section in sections:}}
+						<option {{ if section_id == section.id:}}selected="selected"{{pass}} value="{{=section.id}}">{{=section.name}}</option>
+					{{pass}}
+					</select>
+				</div>
+				<div class="form-group">
+					<input class="btn" type="submit" value="Go" />
+				</div>
+			</form>
+			{{ pass }}
 			<ul class="list-group">
 				{{for row in students:}}
 				<li class="list-group-item">
@@ -11,6 +27,9 @@
 				</li>
 				{{pass}}
 			</ul>
+			{{ if len(students) < 1:}}
+			<div class="info-alert alert">No Students</div>
+			{{pass}}
 		</div>
 		<div class="col-md-6">
 			<h2>Assignments</h2>
@@ -19,9 +38,10 @@
 			<ul class="list-group">
 			{{for row in assignments:}}
 			    <li class="list-group-item">
-					<a href="{{=URL('assignments','detail')}}?id={{=row.id}}">{{=row.name}}</a>
-					<a href="{{=URL('assignments','update')}}?id={{=row.id}}">Edit</a>
-					<a href="{{=URL('assignments','grade')}}?id={{=row.id}}">Grade</a>
+                    {{ =row.name }}
+					<a class="btn btn-primary" href="{{=URL('assignments','detail')}}?id={{=row.id}}" role="button">View</a>
+					<a class="btn btn-primary" href="{{=URL('assignments','update')}}?id={{=row.id}}" role="button">Edit</a>
+					<a class="btn btn-primary" href="{{=URL('assignments','grade')}}?id={{=row.id}}" role="button">Compute Totals</a>
 				</li>  
 			    {{pass}}
 			</ul>

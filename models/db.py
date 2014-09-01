@@ -65,14 +65,33 @@ db.define_table('courses',
   Field('course_id','string'),
   Field('course_name', 'string', unique=True),
   Field('term_start_date', 'date'),
+  Field('institution', 'string'),
+  Field('base_course', 'string'),
   migrate='runestone_courses.table'
 )
 if db(db.courses.id > 0).isempty():
     db.courses.insert(course_name='boguscourse', term_start_date=datetime.date(2000, 1, 1)) # should be id 1
     db.courses.insert(course_name='thinkcspy', term_start_date=datetime.date(2000, 1, 1))
-    db.courses.insert(course_name='pythonds', term_start_date=datetime.date(2000, 1, 1))        
+    db.courses.insert(course_name='pythonds', term_start_date=datetime.date(2000, 1, 1))
     db.courses.insert(course_name='overview', term_start_date=datetime.date(2000, 1, 1))
 
+## create cohort_master table
+db.define_table('cohort_master',
+  Field('cohort_name','string',
+  writable=False,readable=False),
+  Field('created_on','datetime',default=request.now,
+  writable=False,readable=False),
+  Field('invitation_id','string',
+  writable=False,readable=False),
+  Field('average_time','integer', #Average Time it takes people to complete a unit chapter, calculated based on previous chapters
+  writable=False,readable=False),
+  Field('is_active','integer', #0 - deleted / inactive. 1 - active
+  writable=False,readable=False),
+  Field('course_name', 'string'),
+  migrate='runestone_cohort_master.table'
+  )
+if db(db.cohort_master.id > 0).isempty():
+    db.cohort_master.insert(cohort_name='Default Group', is_active = 1)
 
 ########################################
 
@@ -99,7 +118,7 @@ def verifyInstructorStatus(course, instructor):
             ).count() > 0
 
 class IS_COURSE_ID:
-    ''' used to validate that a course name entered (e.g. devcourse) corresponds to a 
+    ''' used to validate that a course name entered (e.g. devcourse) corresponds to a
         valid course ID (i.e. db.courses.id) '''
     def __init__(self, error_message='Unknown course name. Please see your instructor.'):
         self.e = error_message
@@ -108,6 +127,7 @@ class IS_COURSE_ID:
         if db(db.courses.course_name == value).select():
             return (db(db.courses.course_name == value).select()[0].id, None)
         return (value, self.e)
+
 
 db.define_table('auth_user',
     Field('username', type='string',
@@ -132,6 +152,8 @@ db.define_table('auth_user',
     Field('reset_password_key',default='',
           writable=False,readable=False),
     Field('registration_id',default='',
+          writable=False,readable=False),
+    Field('cohort_id','reference cohort_master', requires=IS_IN_DB(db, 'cohort_master.id', 'id'),
           writable=False,readable=False),
     Field('course_id',db.courses,label=T('Course Name'),
           required=True,
@@ -164,12 +186,14 @@ mail.settings.sender = 'you@gmail.com'
 mail.settings.login = 'username:password'
 
 ## configure auth policy
-auth.settings.actions_disabled.append('register')
 auth.settings.registration_requires_verification = False
 auth.settings.registration_requires_approval = False
 auth.settings.reset_password_requires_verification = True
 
 auth.settings.register_next = URL('default', 'index')
+
+# change default session login time from 1 hour to 24 hours
+auth.settings.expiration = 3600*24
 
 ## if you need to use OpenID, Facebook, MySpace, Twitter, Linkedin, etc.
 ## register with janrain.com, write your domain:api_key in private/janrain.key
@@ -181,14 +205,14 @@ from gluon.contrib.login_methods.extended_login_form import ExtendedLoginForm
 janrain_url = 'http://%s/%s/default/user/login' % (request.env.http_host,
                                                    request.application)
 
-# janrain_form = RPXAccount(request,
-#                          api_key=settings.janrain_api_key, # set in 1.py
-#                          domain=settings.janrain_domain, # set in 1.py
-#                          url=janrain_url)
-# auth.settings.login_form = ExtendedLoginForm(auth, janrain_form) # uncomment this to use both Janrain and web2py auth
-auth.settings.login_form = auth  # uncomment this to just use web2py integrated authentication
+janrain_form = RPXAccount(request,
+                          api_key=settings.janrain_api_key, # set in 1.py
+                          domain=settings.janrain_domain, # set in 1.py
+                          url=janrain_url)
+auth.settings.login_form = ExtendedLoginForm(auth, janrain_form) # uncomment this to use both Janrain and web2py auth
+#auth.settings.login_form = auth # uncomment this to just use web2py integrated authentication
 
-# request.janrain_form = janrain_form # save the form so that it can be added to the user/register controller
+request.janrain_form = janrain_form # save the form so that it can be added to the user/register controller
 
 #########################################################################
 ## Define your tables below (or better in another model file) for example

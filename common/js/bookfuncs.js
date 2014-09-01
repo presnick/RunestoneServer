@@ -26,23 +26,12 @@
  */
 
 
-function handleEdKeys(ed, e) {
-    if (e.keyCode === 13) {
-        if (e.ctrlKey) {
-            e.stop();
-            runit(ed.parentDiv);
-        }
-        else if (e.shiftKey) {
-            e.stop();
-            eval(Sk.importMainWithBody("<stdin>", false, ed.selection()));
-        }
-    } else {
-        if (ed.acEditEvent == false || ed.acEditEvent === undefined) {
-            $('#' + ed.parentDiv + ' .CodeMirror').css('border-top', '2px solid #b43232');
-            $('#' + ed.parentDiv + ' .CodeMirror').css('border-bottom', '2px solid #b43232');
-        }
-        ed.acEditEvent = true;
+function showChange(ed,b) {
+    if (ed.acEditEvent == false || ed.acEditEvent === undefined) {
+        $('#' + ed.parentDiv + ' .CodeMirror').css('border-top', '2px solid #b43232');
+        $('#' + ed.parentDiv + ' .CodeMirror').css('border-bottom', '2px solid #b43232');
     }
+    ed.acEditEvent = true;
 }
 
 cm_editors = {};
@@ -74,13 +63,23 @@ function outf(text) {
     mypre.innerHTML = mypre.innerHTML + text;
 }
 
+var keymap = {
+    "Ctrl-Enter" : function (editor) {
+        runit(editor.parentDiv);
+        $("#" + editor.parentDiv).children('.ac_output').show();
+    },
+    "Tab": "indentMore",
+    "Shift-Tab": "indentLess"
+}
+
+
 function createEditors() {
     var edList = new Array();
     edList = document.getElementsByClassName("active_code");
     for (var i = 0; i < edList.length; i++) {
         newEdId = edList[i].id;
         var includes = edList[i].getAttribute('prefixcode');
-        var lang = edList[i].getAttribute('lang');
+        var lang = edList[i].getAttribute('lang') || "python";
         var first_line = 1;
         if (includes !== "undefined") {
             includes = eval(includes)
@@ -92,22 +91,33 @@ function createEditors() {
             first_line = 1;
         }
         cm_editors[newEdId] = CodeMirror.fromTextArea(edList[i], {
-                                                          mode: {name: lang,
-                                                              version: 2,
-                                                              singleLineStringErrors: false},
+                                                          mode: { name: lang,
+                                                                  version: 2,
+                                                                  singleLineStringErrors: false
+                                                                },
                                                           lineNumbers: true,
                                                           firstLineNumber: first_line,
                                                           indentUnit: 4,
                                                           indentWithTabs: false,
                                                           matchBrackets: true,
-                                                          extraKeys: {"Tab": "indentMore", "Shift-Tab": "indentLess"},
-                                                          onKeyEvent: handleEdKeys
+                                                          autoMatchParens: true,
+                                                          extraKeys: keymap
                                                       }
         );
+        cm_editors[newEdId].on('change',showChange);
         cm_editors[newEdId].parentDiv = edList[i].parentNode.parentNode.id;
         //requestCode(edList[i].parentNode.id) // populate with user's code
     }
 
+    // allow ActiveCode editors to be dynamically resized by user
+    $('.CodeMirror').each(function (_, cmNode) {
+        $(cmNode).resizable({
+            resize: function() {
+                cmNode.CodeMirror.setSize($(this).width(), $(this).height());
+                cmNode.CodeMirror.refresh();
+            }
+        });
+    });
 }
 
 function builtinRead(x) {
@@ -117,7 +127,7 @@ function builtinRead(x) {
 }
 
 function createActiveCode(divid,suppliedSource,sid) {
-    var eNode;
+    var edNode;
     var acblockid;
     if (sid !== undefined) {
         acblockid = divid + "_" + sid;
@@ -126,6 +136,7 @@ function createActiveCode(divid,suppliedSource,sid) {
     }
 
     edNode = document.getElementById(acblockid);
+    edNode.lang = edNode.lang || 'python'
     if (edNode.children.length == 0 ) {
         //edNode.style.display = 'none';
         edNode.style.backgroundColor = "white";
@@ -138,8 +149,11 @@ function createActiveCode(divid,suppliedSource,sid) {
                     indentUnit: 4,
                     tabMode: "indent",
                     matchBrackets: true,
-                    onKeyEvent:handleEdKeys
+                    autoMatchParens: true,
+                    extraKeys: keymap
                 });
+
+        editor.setSize(null,250);
 
 
         var myRun = function() {
@@ -220,6 +234,7 @@ function createActiveCode(divid,suppliedSource,sid) {
             suppliedSource = suppliedSource.replace(new RegExp('%27','g'),"'");
             editor.setValue(suppliedSource);
         }
+        editor.refresh()
     }
 }
 
@@ -233,6 +248,8 @@ function runit(myDiv, theButton, includes, suffix) {
         Sk.runButton = theButton;
     }
     $("#" + myDiv + "_errinfo").remove();
+    $("#" + myDiv + "_coach_div").hide();
+
     var editor = cm_editors[myDiv + "_code"];
     if (editor.acEditEvent) {
         logBookEvent({'event': 'activecode', 'act': 'edit', 'div_id': myDiv}); // Log the edit event
@@ -275,7 +292,7 @@ function runit(myDiv, theButton, includes, suffix) {
     // configure Skulpt output function, and module reader
     Sk.configure({output: outf,
                      read: builtinRead,
-                     python3: false
+                     python3: true
                  });
     var lang = document.getElementById(myDiv).lang;
     try {
@@ -537,6 +554,7 @@ function gotUser(data, status, whatever) {
         if (!caughtErr) {
             mess = d.email;
             eBookConfig.isLoggedIn = true;
+			eBookConfig.cohortId = d.cohortId;
             addNavbarLoginLink(); // will change navbar login link to say 'Log Out'
             enableUserHighlights();
             timedRefresh();
@@ -595,6 +613,18 @@ function addUserToFooter() {
 
 function addNavbarLoginLink() {
     if (isLoggedIn()) {
+		if (eBookConfig.cohortId == null || eBookConfig.cohortId ==""){
+			$('#joinGroupLink').show();
+			$('#groupScheduleLink').hide();
+			$('#newChapterLink').hide();
+			$('#manageGroupLink').hide();
+		}
+		else{
+			$('#joinGroupLink').hide();
+			$('#groupScheduleLink').show();
+			$('#newChapterLink').show();
+			$('#manageGroupLink').show();
+		}
         $('#profilelink').show();
         $('#passwordlink').show();
         $('#registerlink').hide();
@@ -842,9 +872,9 @@ function createScratchActivecode() {
         '        <h4 class="modal-title">Scratch ActiveCode</h4>' +
         '      </div> ' +
         '      <div class="modal-body">' +
-        '        <div id="' + divid + '">' +
+        '        <div id="' + divid + '" lang="python">' +
         '          <div id="' + divid + '_code_div" style="display: block">' +
-        '            <textarea cols="50" rows="12" id="' + divid + '_code" class="active_code">\n\n\n\n\n</textarea>' +
+        '            <textarea cols="50" rows="12" lang="python" id="' + divid + '_code" class="active_code">\n\n\n\n\n</textarea>' +
         '          </div>' +
         '          <p class="ac_caption"><span class="ac_caption_text">Scratch Editor</span> </p>' +
 
@@ -931,4 +961,91 @@ function createGradeSummary(div_id) {
     var data = {'div_id':div_id}
     jQuery.get(eBookConfig.ajaxURL + 'getassignmentgrade', data, showGradeSummary);
 
+}
+function hideCodelens(button, div_id) {
+    var div = document.getElementById(div_id+'_codelens_div')
+    div.style.display='none'
+
+}
+
+function injectCodelens(button, div_id) {
+    var div = document.getElementById(div_id+'_codelens_div')
+    if (div.style.display == 'none') {
+        div.style.display = 'block';
+        button.innerText = "Hide Codelens";
+    } else {
+        div.style.display = "none";
+        button.innerText = "Show in Codelens";
+        return;
+    }
+
+    var cl = document.getElementById(div_id+'_codelens')
+    if (cl ) {
+        div.removeChild(cl)
+    }
+    var editor = cm_editors[div_id + "_code"]
+    var code = editor.getValue()
+    var myVars = {}
+    myVars.code = code
+    myVars.origin = "opt-frontend.js"
+    myVars.cumulative = false
+    myVars.heapPrimitives = false
+    myVars.drawParentPointers=false
+    myVars.textReferences = false
+    myVars.showOnlyOutputs=false
+    myVars.rawInputLstJSON = JSON.stringify([])
+    myVars.py = 2
+    myVars.curInstr = 0
+    myVars.codeDivWidth = 350
+    myVars.codeDivHeight = 400
+    var srcURL = 'http://pythontutor.com/iframe-embed.html'
+    var embedUrlStr = $.param.fragment(srcURL, myVars, 2 /* clobber all */)
+    var myIframe = document.createElement('iframe')
+    myIframe.setAttribute("id",div_id+'_codelens')
+    myIframe.setAttribute("width","800")
+    myIframe.setAttribute("height","500")
+    myIframe.setAttribute("style","display:block")
+    myIframe.style.background = '#fff'
+    //myIframe.setAttribute("src",srcURL)
+    myIframe.src = embedUrlStr
+    div.appendChild(myIframe)
+    logBookEvent({
+                     'event': 'codelens',
+                     'act': 'view',
+                     'div_id': div_id
+                 });
+
+}
+
+// <iframe id="%(divid)s_codelens" width="800" height="500" style="display:block"src="#">
+// </iframe>
+
+
+function injectCodeCoach(div_id) {
+    var myIframe;
+    var srcURL;
+    var cl;
+    var div = document.getElementById(div_id+'_coach_div')
+    div.style.display='block'
+    cl = document.getElementById(div_id+'_coach')
+    if (cl ) {
+        div.removeChild(cl)
+    }
+
+    srcURL = eBookConfig.app + '/admin/diffviewer?divid='+div_id;
+    myIframe = document.createElement('iframe');
+    myIframe.setAttribute("id",div_id+'_coach');
+    myIframe.setAttribute("width","800px");
+    myIframe.setAttribute("height","500px");
+    myIframe.setAttribute("style","display:block");
+    myIframe.style.background = '#fff';
+    myIframe.style.width = "100%"
+    //myIframe.setAttribute("src",srcURL)
+    myIframe.src = srcURL;
+    div.appendChild(myIframe);
+    logBookEvent({
+                     'event': 'coach',
+                     'act': 'view',
+                     'div_id': div_id
+                 });
 }

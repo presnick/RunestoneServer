@@ -24,20 +24,21 @@ import json
 
 def setup(app):
     app.add_directive('codelens',Codelens)
-    app.add_stylesheet('css/pytutor.css')
-    app.add_stylesheet('css/basic.css')
+    app.add_stylesheet('pytutor.css')
+    app.add_stylesheet('modal-basic.css')
 
-    app.add_javascript('js/d3.v2.min.js')
-    app.add_javascript('jquery-migrate-1.2.1.min.js') # needed so that ba-bbq can use the latest jQuery that we've included
-    app.add_javascript('js/jquery.ba-bbq.min.js')
-    app.add_javascript('js/jquery.jsPlumb-1.3.10-all-min.js')
-    app.add_javascript('js/pytutor.js')
+    app.add_javascript('d3.v2.min.js')
+    app.add_javascript('jquery.ba-bbq.min.js')
+    app.add_javascript('jquery.jsPlumb-1.3.10-all-min.js')
+    app.add_javascript('pytutor.js')
 
 
 
 VIS = '''
+<div class="alert alert-warning cd_section">
 <div id="%(divid)s"></div>
-<p class="cl_caption"><span class="cl_caption_text">%(caption)s (%(divid)s)</span> </p>'''
+<p class="cl_caption"><span class="cl_caption_text">%(caption)s (%(divid)s)</span> </p>
+</div>'''
 
 QUESTION = '''
 <div id="%(divid)s_modal" class="modal fade codelens-modal">
@@ -72,7 +73,7 @@ var %(divid)s_vis;
 $(document).ready(function() {
     %(divid)s_vis = new ExecutionVisualizer('%(divid)s',%(divid)s_trace,
                                 {embeddedMode: %(embedded)s,
-                                verticalStack: true,
+                                verticalStack: false,
                                 heightChangeCallback: redrawAllVisualizerArrows,
                                 codeDivWidth: 500
                                 });
@@ -182,12 +183,14 @@ class Codelens(Directive):
 
 
         if 'question' in self.options:
-            curTrace = exec_script_str_local(source, CUMULATIVE_MODE, raw_dict)
+            curTrace = exec_script_str_local(source, None, CUMULATIVE_MODE, None, raw_dict)
             self.inject_questions(curTrace)
             json_output = json.dumps(curTrace, indent=None)
             self.options['tracedata'] = "var %s = %s;" % (self.JS_VARNAME, json_output)
         else:
-            self.options['tracedata'] = exec_script_str_local(source, CUMULATIVE_MODE, js_var_finalizer)
+            self.options['tracedata'] = exec_script_str_local(source, None,
+                                                              CUMULATIVE_MODE,
+                                                              None, js_var_finalizer)
 
         res = VIS
         if 'caption' not in self.options:

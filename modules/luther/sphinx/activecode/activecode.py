@@ -31,8 +31,8 @@ import os
 #     staticserver = 'runestonestatic.appspot.com'
 
 def setup(app):
-    app.add_directive('activecode',ActiveCode)
-    app.add_directive('actex',ActiveExercise)
+    app.add_directive('activecode', ActiveCode)
+    app.add_directive('actex', ActiveExercise)
     app.add_stylesheet('codemirror.css')
     app.add_stylesheet('activecode.css')
 
@@ -53,40 +53,55 @@ def setup(app):
 
 
 START = '''
-<div id="%(divid)s" lang="%(language)s" >
+<div id="cont"></div>
+<div id="%(divid)s" lang="%(language)s" class="ac_section alert alert-warning" >
 '''
 
 
 EDIT1 = '''
+</div>
 <br/>
-<div id="%(divid)s_code_div" style="display: %(hidecode)s">
-<textarea cols="50" rows="12" id="%(divid)s_code" class="active_code", prefixcode="%(include)s" lang="%(language)s">
+<div id="%(divid)s_code_div" style="display: %(hidecode)s" class="ac_code_div">
+<textarea cols="50" rows="12" id="%(divid)s_code" class="active_code" prefixcode="%(include)s" lang="%(language)s">
 %(initialcode)s
 </textarea>
 </div>
-<p class="ac_caption"><span class="ac_caption_text">%(caption)s (%(divid)s)</span> </p>
+'''
 
-<button class='btn btn-success' id="%(divid)s_runb" onclick="runit('%(divid)s',this, %(include)s);">Run</button>
+CAPTION = ''' 
+<div class="clearfix"></div>
+<p class="ac_caption"><span class="ac_caption_text">%(caption)s (%(divid)s)</span> </p>
 '''
 
 UNHIDE='''
+<span class="ac_sep"></span>
 <button class='btn btn-default' id="%(divid)s_showb" onclick="$('#%(divid)s_code_div').toggle();cm_editors['%(divid)s_code'].refresh();$('#%(divid)s_saveb').toggle();$('#%(divid)s_loadb').toggle()">Show/Hide Code</button>
 '''
 
 GRADES = '''
+<span class="ac_sep"></span>
 <input type="button" class='btn btn-default ' id="gradeb" name="Show Feedback" value="Show Feedback" onclick="createGradeSummary('%(divid)s')"/>
 '''
 
 AUDIO = '''
+<span class="ac_sep"></span>
 <input type="button" class='btn btn-default ' id="audiob" name="Play Audio" value="Start Audio Tour" onclick="createAudioTourHTML('%(divid)s','%(argu)s','%(no_of_buttons)s','%(ctext)s')"/>
 '''
 
 EDIT2 = '''
-<div id="cont"></div>
-
+<div class="ac_actions">
+<button class='btn btn-success' id="%(divid)s_runb">Run</button>
 <button class="ac_opt btn btn-default" style="display: inline-block" id="%(divid)s_saveb" onclick="saveEditor('%(divid)s');">Save</button>
 <button class="ac_opt btn btn-default" style="display: inline-block" id="%(divid)s_loadb" onclick="requestCode('%(divid)s');">Load</button>
+'''
 
+VIZB = '''<button class='btn btn-default' id="%(divid)s_vizb" onclick="injectCodelens(this,'%(divid)s');">Show in Codelens</button>
+'''
+
+COACHB = '''<button class='btn btn-default' id="%(divid)s_coach_b" onclick="injectCodeCoach('%(divid)s');">Code Coach</button>
+'''
+
+SCRIPT = '''
 <script>
 if ('%(hidecode)s' == 'none') {
     // a hack to preserve the inline-block display style. Toggle() will use display: block
@@ -94,9 +109,45 @@ if ('%(hidecode)s' == 'none') {
     $('#%(divid)s_saveb').toggle();
     $('#%(divid)s_loadb').toggle();
 }
+if ($("#%(divid)s_code_div").parents(".admonition").length == 0 && $("#%(divid)s_code_div").parents("#exercises").length == 0){
+	if ($(window).width() > 975){
+		$("#%(divid)s_code_div").offset({
+			left: $("#%(divid)s .clearfix").offset().left
+		});
+	}
+	$("#%(divid)s_runb").one("click", function(){
+		$({})
+		.queue(function (next) {
+			if ($(window).width() > 975){
+				$("#%(divid)s_code_div").animate({
+					left: 40
+				}, 500, next);
+			}
+			else{
+				next();
+			}
+		})
+		.queue(function (next) {
+			$("#%(divid)s_runb").parent().siblings(".ac_output").show();
+			runit('%(divid)s',this, %(include)s);
+			$("#%(divid)s_runb").on("click", function(){
+				runit('%(divid)s',this, %(include)s);
+			});
+		})
+		
+	});
+}
+else{
+	$("#%(divid)s_code_div").css({float : "none", marginLeft : "auto", marginRight : "auto"});
+	$("#%(divid)s_runb").parent().siblings(".ac_output").show().css({float : "none", right : "0px"});
+	$("#%(divid)s_runb").on("click", function(){
+		runit('%(divid)s',this, %(include)s);
+	});
+}
 </script>
-
 '''
+OUTPUT_START = '''
+<div class="ac_output">'''
 
 CANVAS = '''
 <div style="text-align: center">
@@ -106,12 +157,17 @@ CANVAS = '''
 
 SUFF = '''<pre id="%(divid)s_suffix" style="display:none">%(suffix)s</pre>'''
 
-PRE = '''
-<pre id="%(divid)s_pre" class="active_out">
-
-</pre>
-
+PRE = '''<pre id="%(divid)s_pre" class="active_out"></pre>
 '''
+OUTPUT_END = '''
+</div> <!-- end output -->'''
+
+VIZ = '''<div id="%(divid)s_codelens_div" style="display:none"></div>'''
+
+# <iframe id="%(divid)s_codelens" width="800" height="500" style="display:block"src="#">
+# </iframe>
+
+COACH = '''<div id="%(divid)s_coach_div" style="display:none;"></div>'''
 
 END = '''
 </div>
@@ -129,7 +185,6 @@ $(document).ready(function() {
 </script>
 '''
 
-#'
 class ActivcodeNode(nodes.General, nodes.Element):
     def __init__(self,content):
         """
@@ -149,26 +204,43 @@ def visit_ac_node(self,node):
     res = START
     if 'above' in node.ac_components:
         res += CANVAS
-    res += EDIT1
     if 'tour_1' not in node.ac_components:
         res += EDIT2
     else:
-        res += AUDIO + EDIT2
-    if 'above' not in node.ac_components:
-        if 'nocanvas' not in node.ac_components:
-            res += CANVAS
+        res += EDIT2 + AUDIO
+    if node.ac_components['codelens']:
+        res += VIZB
+
+    if 'coach' in node.ac_components:
+        res += COACHB
+
     if 'hidecode' not in node.ac_components:
         node.ac_components['hidecode'] = 'block'
     if node.ac_components['hidecode'] == 'none':
         res += UNHIDE
     if 'gradebutton' in node.ac_components:
         res += GRADES
+    res += EDIT1
+    res += OUTPUT_START
+    if 'above' not in node.ac_components:
+        if 'nocanvas' not in node.ac_components:
+            res += CANVAS
     if 'suffix' in node.ac_components:
         res += SUFF
     if 'nopre' not in node.ac_components:
         res += PRE
     if 'autorun' in node.ac_components:
         res += AUTO
+    res += OUTPUT_END
+    res += CAPTION
+
+    if node.ac_components['codelens']:
+        res += VIZ
+
+    if 'coach' in node.ac_components:
+        res += COACH
+
+    res += SCRIPT
     res += END
     res = res % node.ac_components
     res = res.replace("u'","'")  # hack:  there must be a better way to include the list and avoid unicode strings
@@ -208,7 +280,9 @@ class ActiveCode(Directive):
         'tour_2':directives.unchanged,
         'tour_3':directives.unchanged,
         'tour_4':directives.unchanged,
-        'tour_5':directives.unchanged
+        'tour_5':directives.unchanged,
+        'nocodelens':directives.flag,
+        'coach':directives.flag
     }
 
     def run(self):
@@ -272,6 +346,11 @@ class ActiveCode(Directive):
         if 'language' not in self.options:
             self.options['language'] = 'python'
 
+        if 'nocodelens' in self.options:
+            self.options['codelens'] = False
+        else:
+            self.options['codelens'] = True
+
         return [ActivcodeNode(self.options)]
 
 
@@ -281,10 +360,10 @@ class ActiveExercise(ActiveCode):
     has_content = True
 
     def run(self):
-# I prefer to have the code box shown by default for Active Exercise-- presnick
-#        self.options['hidecode'] = True
+        self.options['hidecode'] = True
         self.options['gradebutton'] = True
-        return super(ActiveExercise,self).run()
+        self.options['coach'] = True
+        return super(ActiveExercise, self).run()
 
 
 if __name__ == '__main__':

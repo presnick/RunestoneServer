@@ -3,22 +3,36 @@ import datetime
 import logging
 import time
 from collections import Counter
+from diff_match_patch import *
+import os, sys
+# kind of a hacky approach to import coach functions
+sys.path.insert(0,os.path.dirname(__file__))
+from coach import get_lint
 
 logger = logging.getLogger("web2py.app.eds")
 logger.setLevel(logging.DEBUG)
 
 response.headers['Access-Control-Allow-Origin'] = '*'
 
-def hsblog():  # Human Subjects Board Log
+
+def compareAndUpdateCookieData(sid):
+    if request.cookies.has_key('ipuser') and request.cookies['ipuser'].value != sid:
+        db.useinfo(db.useinfo.sid == request.cookies['ipuser'].value).update(sid=sid)
+
+def hsblog():    # Human Subjects Board Log
     setCookie = False
     if auth.user:
         sid = auth.user.username
+        compareAndUpdateCookieData(sid)
+        setCookie = True    # we set our own cookie anyway to eliminate many of the extraneous anonymous
+                            # log entries that come from auth timing out even but the user hasn't reloaded
+                            # the page.
     else:
         if request.cookies.has_key('ipuser'):
             sid = request.cookies['ipuser'].value
             setCookie = True
         else:
-            sid = str(int(time.time() * 1000)) + "@" + request.client
+            sid = str(int(time.time()*1000))+"@"+request.client
             setCookie = True
     act = request.vars.act
     div_id = request.vars.div_id
@@ -26,25 +40,26 @@ def hsblog():  # Human Subjects Board Log
     course = request.vars.course
     ts = datetime.datetime.now()
 
-    db.useinfo.insert(sid=sid, act=act, div_id=div_id, event=event, timestamp=ts, course_id=course)
+    db.useinfo.insert(sid=sid,act=act,div_id=div_id,event=event,timestamp=ts,course_id=course)
     response.headers['content-type'] = 'application/json'
     res = {'log':True}
     if setCookie:
         response.cookies['ipuser'] = sid
-        response.cookies['ipuser']['expires'] = 24 * 3600 * 90
+        response.cookies['ipuser']['expires'] = 24*3600*90
         response.cookies['ipuser']['path'] = '/'
     return json.dumps(res)
 
-def runlog():  # Log errors and runs with code
+def runlog():    # Log errors and runs with code
     setCookie = False
     if auth.user:
         sid = auth.user.username
+        setCookie = True
     else:
         if request.cookies.has_key('ipuser'):
             sid = request.cookies['ipuser'].value
             setCookie = True
         else:
-            sid = str(int(time.time() * 1000)) + "@" + request.client
+            sid = str(int(time.time()*1000))+"@"+request.client
             setCookie = True
     div_id = request.vars.div_id
     course = request.vars.course
@@ -57,13 +72,14 @@ def runlog():  # Log errors and runs with code
     else:
         act = 'run'
         event = 'activecode'
-    db.acerror_log.insert(sid=sid, div_id=div_id, timestamp=ts, course_id=course, code=code, emessage=error_info)
-    db.useinfo.insert(sid=sid, act=act, div_id=div_id, event=event, timestamp=ts, course_id=course)
+    dbid = db.acerror_log.insert(sid=sid,div_id=div_id,timestamp=ts,course_id=course,code=code,emessage=error_info)
+    db.useinfo.insert(sid=sid,act=act,div_id=div_id,event=event,timestamp=ts,course_id=course)
+    lintAfterSave(dbid, code, div_id, sid)
     response.headers['content-type'] = 'application/json'
     res = {'log':True}
     if setCookie:
         response.cookies['ipuser'] = sid
-        response.cookies['ipuser']['expires'] = 24 * 3600 * 90
+        response.cookies['ipuser']['expires'] = 24*3600*90
         response.cookies['ipuser']['path'] = '/'
     return json.dumps(res)
 
@@ -104,11 +120,14 @@ def saveprog():
                 return json.dumps(["ERROR: Sorry. The deadline for this assignment has passed. The deadline was %s" % (dl.deadline)])
     try:
         db.code.insert(sid=auth.user.username,
-            acid=acid, code=code,
+            acid=acid,code=code,
             timestamp=datetime.datetime.now(),
             course_id=auth.user.course_id)
     except Exception as e:
-        return json.dumps(["ERROR: " + str(e) + "Please copy this error and use the Report a Problem link"])
+        if not auth.user:
+            return json.dumps(["ERROR: auth.user is not defined.  Copy your code to the clipboard and reload or logout/login"])
+        else:
+            return json.dumps(["ERROR: " + str(e) + "Please copy this error and use the Report a Problem link"])
 
     return json.dumps([acid])
 
@@ -140,12 +159,12 @@ def getprog():
         result = db(query)
         res['acid'] = acid
         if not result.isempty():
-            r = result.select(orderby= ~codetbl.timestamp).first().code
+            r = result.select(orderby=~codetbl.timestamp).first().code
             res['source'] = r
             if sid:
                 res['sid'] = sid
         else:
-            logging.debug("Did not find anything to load for %s" % sid)
+            logging.debug("Did not find anything to load for %s"%sid)
     response.headers['content-type'] = 'application/json'
     return json.dumps([res])
 
@@ -154,20 +173,20 @@ def getprog():
 def savegrade():
     res = db(db.code.id == request.vars.id)
     if request.vars.grade:
-        res.update(grade=float(request.vars.grade))
+        res.update(grade = float(request.vars.grade))
     else:
-        res.update(comment=request.vars.comment)
+        res.update(comment = request.vars.comment)
 
 
-# @auth.requires_login()
+#@auth.requires_login()
 def getuser():
     response.headers['content-type'] = 'application/json'
 
     if  auth.user:
-        res = {'email':auth.user.email, 'nick':auth.user.username}
+        res = {'email':auth.user.email,'nick':auth.user.username,'cohortId':auth.user.cohort_id}
     else:
-        res = dict(redirect=auth.settings.login_url)  # ?_next=....
-    logging.debug("returning login info: %s", res)
+        res = dict(redirect=auth.settings.login_url) #?_next=....
+    logging.debug("returning login info: %s",res)
     return json.dumps([res])
 
 
@@ -188,12 +207,13 @@ def getnumusers():
     response.headers['content-type'] = 'application/json'
 
     query = """select count(*) from (select distinct(sid) from useinfo) as X """
+    numusers = 'more than 850,000'
 
-    try:
-        numusers = cache.disk('numusers', lambda: db.executesql(query)[0][0], time_expire=21600)
-    except:
-        # sometimes the DB query takes too long and is timed out - return something anyway
-        numusers = 'more than 250,000'
+    # try:
+    #     numusers = cache.disk('numusers', lambda: db.executesql(query)[0][0], time_expire=21600)
+    # except:
+    #     # sometimes the DB query takes too long and is timed out - return something anyway
+    #     numusers = 'more than 250,000'
 
     res = {'numusers':numusers}
     return json.dumps([res])
@@ -217,7 +237,7 @@ def savehighlight():
                        range=hrange,
                        chapter_url=page,
                        sub_chapter_url=pageSection,
-                       method=method)
+                       method = method)
         return str(insert_id)
 
 
@@ -225,7 +245,7 @@ def deletehighlight():
     uniqueId = request.vars.uniqueId
 
     if uniqueId:
-        db(db.user_highlights.id == uniqueId).update(is_active=0)
+        db(db.user_highlights.id == uniqueId).update(is_active = 0)
     else:
         print 'uniqueId is None'
 
@@ -259,45 +279,82 @@ def gethighlights():
 #
 def updatelastpage():
     lastPageUrl = request.vars.lastPageUrl
-    lastPageHash = request.vars.lastPageHash
-    lastPageChapter = request.vars.lastPageChapter
-    lastPageSubchapter = request.vars.lastPageSubchapter
     lastPageScrollLocation = request.vars.lastPageScrollLocation
     course = request.vars.course
+    completionFlag = request.vars.completionFlag
+    lastPageChapter = lastPageUrl.split("/")[-2]
+    lastPageSubchapter = lastPageUrl.split("/")[-1].split(".")[0]
     if auth.user:
-        res = db((db.user_state.user_id == auth.user.id) &
-                 (db.user_state.course_id == course))
-        res.update(last_page_url=lastPageUrl, last_page_hash=lastPageHash,
-                   last_page_chapter=lastPageChapter,
-                   last_page_subchapter=lastPageSubchapter,
-                   last_page_scroll_location=lastPageScrollLocation,
-                   last_page_accessed_on=datetime.datetime.now())
+        db((db.user_state.user_id == auth.user.id) &
+                 (db.user_state.course_id == course)).update(
+                   last_page_url = lastPageUrl,
+                   last_page_chapter = lastPageChapter,
+                   last_page_subchapter = lastPageSubchapter,
+                   last_page_scroll_location = lastPageScrollLocation,
+                   last_page_accessed_on = datetime.datetime.now())
 
+        db((db.user_sub_chapter_progress.user_id == auth.user.id) &
+           (db.user_sub_chapter_progress.chapter_id == lastPageChapter) &
+           (db.user_sub_chapter_progress.sub_chapter_id == lastPageSubchapter)).update(
+                   status = completionFlag,
+                   end_date = datetime.datetime.now())
+
+def getCompletionStatus():
+    lastPageUrl = request.vars.lastPageUrl
+    lastPageChapter = lastPageUrl.split("/")[-2]
+    lastPageSubchapter = lastPageUrl.split("/")[-1].split(".")[0]
+    result = db((db.user_sub_chapter_progress.user_id == auth.user.id) &
+                (db.user_sub_chapter_progress.chapter_id == lastPageChapter) &
+                (db.user_sub_chapter_progress.sub_chapter_id == lastPageSubchapter)).select(db.user_sub_chapter_progress.status)
+    rowarray_list = []
+    if result:
+        for row in result:
+            res = {'completionStatus': row.status}
+            rowarray_list.append(res)
+        return json.dumps(rowarray_list)
+
+def getAllCompletionStatus():
+    result = db((db.user_sub_chapter_progress.user_id == auth.user.id)).select(db.user_sub_chapter_progress.chapter_id, db.user_sub_chapter_progress.sub_chapter_id, db.user_sub_chapter_progress.status, db.user_sub_chapter_progress.status, db.user_sub_chapter_progress.end_date)
+    rowarray_list = []
+    if result:
+        for row in result:
+            if row.end_date == None:
+                endDate = 0
+            else:
+                endDate = row.end_date.strftime('%d %b, %Y')
+            res = {'chapterName': row.chapter_id,
+                   'subChapterName': row.sub_chapter_id,
+                   'completionStatus': row.status,
+                   'endDate': endDate}
+            rowarray_list.append(res)
+        return json.dumps(rowarray_list)
 
 def getlastpage():
     course = request.vars.course
     if auth.user:
         result = db((db.user_state.user_id == auth.user.id) &
-                    (db.user_state.course_id == course)
+                    (db.user_state.course_id == course) &
+                    (db.user_state.last_page_chapter == db.chapters.chapter_label) &
+                    (db.user_state.last_page_subchapter == db.sub_chapters.sub_chapter_label)
                     ).select(db.user_state.last_page_url, db.user_state.last_page_hash,
-                             db.user_state.last_page_chapter,
+                             db.chapters.chapter_name,
                              db.user_state.last_page_scroll_location,
-                             db.user_state.last_page_subchapter)
+                             db.sub_chapters.sub_chapter_name)
         rowarray_list = []
         if result:
             for row in result:
-                res = {'lastPageUrl': row.last_page_url,
-                       'lastPageHash': row.last_page_hash,
-                       'lastPageChapter': row.last_page_chapter,
-                       'lastPageSubchapter': row.last_page_subchapter,
-                       'lastPageScrollLocation': row.last_page_scroll_location}
+                res = {'lastPageUrl': row.user_state.last_page_url,
+                       'lastPageHash': row.user_state.last_page_hash,
+                       'lastPageChapter': row.chapters.chapter_name,
+                       'lastPageSubchapter': row.sub_chapters.sub_chapter_name,
+                       'lastPageScrollLocation': row.user_state.last_page_scroll_location}
                 rowarray_list.append(res)
             return json.dumps(rowarray_list)
         else:
             db.user_state.insert(user_id=auth.user.id, course_id=course)
 
 
-def getCorrectStats(miscdata, event):
+def getCorrectStats(miscdata,event):
     sid = None
     if auth.user:
         sid = auth.user.username
@@ -322,7 +379,7 @@ def getCorrectStats(miscdata, event):
 
         try:
             rows = db.executesql(correctquery)
-            pctcorr = round(rows[0][0] * 100)
+            pctcorr = round(rows[0][0]*100)
         except:
             pctcorr = 'unavailable in sqlite'
     else:
@@ -334,12 +391,12 @@ def getCorrectStats(miscdata, event):
 def getStudentResults(question):
         course = db(db.courses.id == auth.user.course_id).select(db.courses.course_name).first()
 
-        q = db((db.useinfo.div_id == question) &
+        q = db( (db.useinfo.div_id == question) &
                 (db.useinfo.course_id == course.course_name) &
                 (db.courses.course_name == course.course_name) &
-                (db.useinfo.timestamp >= db.courses.term_start_date))
+                (db.useinfo.timestamp >= db.courses.term_start_date) )
 
-        res = q.select(db.useinfo.sid, db.useinfo.act, orderby=db.useinfo.sid)
+        res = q.select(db.useinfo.sid,db.useinfo.act,orderby=db.useinfo.sid)
 
         resultList = []
         if len(res) > 0:
@@ -403,7 +460,7 @@ def getaggregateresults():
                 if answer != "undefined" and answer != "":
                     rdata[answer] = pct
             except:
-                print "Bad data for %s data is %s " % (question, key)
+                print "Bad data for %s data is %s " % (question,key)
 
     miscdata['correct'] = correct
     miscdata['course'] = course
@@ -412,7 +469,7 @@ def getaggregateresults():
 
     returnDict = dict(answerDict=rdata, misc=miscdata)
 
-    if auth.user and verifyInstructorStatus(course, auth.user.id):  # auth.has_membership('instructor', auth.user.id):
+    if auth.user and verifyInstructorStatus(course,auth.user.id):  #auth.has_membership('instructor', auth.user.id):
         resultList = getStudentResults(question)
         returnDict['reslist'] = resultList
 
@@ -455,29 +512,44 @@ def gettop10Answers():
     response.headers['content-type'] = 'application/json'
     rows = []
 
-    query = '''select act, count(*) from useinfo, courses where event = 'fillb' and div_id = '%s' and useinfo.course_id = '%s' and useinfo.course_id = courses.course_name and timestamp > courses.term_start_date  group by act order by count(*) desc limit 10''' % (question, course)
+    query = '''select act, count(*) from useinfo, courses where event = 'fillb' and div_id = '%s' and useinfo.course_id = '%s' and useinfo.course_id = courses.course_name and timestamp > courses.term_start_date  group by act order by count(*) desc limit 10''' % (question,course)
     try:
         rows = db.executesql(query)
-        res = [{'answer':row[0][row[0].index(':') + 1:row[0].rindex(':')],
+        res = [{'answer':row[0][row[0].index(':')+1:row[0].rindex(':')],
                 'count':row[1]} for row in rows ]
     except:
         res = 'error in query'
 
     miscdata = {'course': course}
-    getCorrectStats(miscdata, 'fillb')
+    getCorrectStats(miscdata,'fillb')
 
-    if auth.user and auth.has_membership('instructor', auth.user.id):
+    if auth.user and auth.has_membership('instructor',auth.user.id):
         resultList = getStudentResults(question)
         miscdata['reslist'] = resultList
 
-    return json.dumps([res, miscdata])
+    return json.dumps([res,miscdata])
 
 
 def getSphinxBuildStatus():
     task_name = request.vars.task_name
     course_url = request.vars.course_url
 
+    courseid = course_url.replace('/'+request.application+'/static/','')
+    courseid = courseid.replace('/index.html', '')
+    confdir = os.path.join(os.getcwd(), 'applications', request.application, 'custom_courses', courseid, 'done')
+
+
     row = scheduler.task_status(task_name)
+
+    if os.path.exists(confdir):
+        os.remove(confdir)
+        try:
+            db(db.scheduler_run.task_id == row.id).update(status='COMPLETED')
+            db(db.scheduler_task.id == row.id).update(status='COMPLETED')
+        except:
+            pass
+        return dict(status='true', course_url=course_url)
+
     st = row['status']
 
     if st == 'COMPLETED':
@@ -528,3 +600,101 @@ def getassignmentgrade():
         ret['count'] = rows[0][1]
 
     return json.dumps([ret])
+
+
+def diff_prettyHtml(self, diffs):
+    """Convert a diff array into a pretty HTML report.
+
+    Args:
+      diffs: Array of diff tuples.
+
+    Returns:
+      HTML representation.
+    """
+    html = []
+    ct = 1
+    for (op, data) in diffs:
+        text = (data.replace("&", "&amp;").replace("<", "&lt;")
+                .replace(">", "&gt;").replace("\n", "<br>"))
+        if op == self.DIFF_INSERT:
+            html.append("<ins style=\"background:#e6ffe6;\">%s</ins>" % text)
+        elif op == self.DIFF_DELETE:
+            html.append("<del style=\"background:#ffe6e6;\">%s</del>" % text)
+        elif op == self.DIFF_EQUAL:
+            html.append("<span>%s</span>" % text)
+    return "".join(html)
+
+
+def getCodeDiffs():
+    if auth.user:
+        sid = auth.user.username
+    else:
+        sid = request.vars['sid']
+    divid = request.vars['divid']
+    q = '''select timestamp, sid, div_id, code, emessage, id
+           from acerror_log 
+           where sid = '%s' and course_id = '%s' and div_id='%s'
+           order by timestamp
+    ''' % (sid, auth.user.course_name, divid)
+
+    rows = db.executesql(q)
+    if len(rows) < 1:
+        return json.dumps(dict(timestamps=[0], code=[''],
+                               diffs=[''],
+                               mess=['No Coaching hints yet.  You need to run the example at least once.'],
+                               chints=['']))
+
+    differ = diff_match_patch()
+    ts = []
+    newcode = []
+    diffcode = []
+    messages = []
+    coachHints = []
+
+#    diffs = differ.diff_lineMode(rows[0][3], rows[0][3], True)
+#    diffcode.append(differ.diff_prettyHtml(diffs).replace('&para;', ''))
+    newcode.append(rows[0][3])
+    ts.append(str(rows[0][0]))
+    coachHints.append(getCoachingHints(int(rows[0][5])))
+    messages.append(rows[0][4].replace("success",""))
+
+    for i in range(1,len(rows)):
+        diffs = differ.diff_lineMode(rows[i-1][3], rows[i][3],True)
+        ts.append(str(rows[i][0]))
+        newcode.append(rows[i][3])
+        diffcode.append(diff_prettyHtml(differ,diffs).replace('&para;', ''))
+        messages.append(rows[i][4].replace("success", ""))
+        coachHints.append(getCoachingHints(int(rows[i][5])))
+    return json.dumps(dict(timestamps=ts,code=newcode,diffs=diffcode,mess=messages,chints=coachHints))
+
+
+def getCoachingHints(ecId):
+    catToTitle = {"C": "Coding Conventions", "R": "Good Practice", "W": "Minor Programming Issues",
+                  "E": "Serious Programming Error", "F": "Fatal Errors"}
+
+    rows = db.executesql("select category,symbol,line,msg from coach_hints where source=%d order by category, line" % ecId)
+    res = ''
+    catres = {'C':'', 'R':'', 'W':'', 'E':'', 'F':''}
+    for k in catres:
+        catres[k] = '<h2>%s</h2>' % catToTitle[k]
+    for row in rows:
+            cat = row[0]
+            catres[cat] += "Line: %d %s %s <br>" % (row[2], row[1], row[3])
+
+    for ch in "FEWRC":
+        res += catres[ch]
+    return res
+
+
+def lintAfterSave(dbid, code, div_id, sid):
+    #dbid = request.args.id
+    #entry = db(db.acerror_log.id == dbid).select().first()
+    pylint_stdout = get_lint(code, div_id, sid)
+
+    for line in pylint_stdout:
+        g = re.match(r"^([RCWEF]):\s(.*?):\s([RCWEF]\d+):\s+(\d+),(\d+):(.*?):\s(.*)$", line)
+        if g:
+            db.coach_hints.insert(category=g.group(1), symbol=g.group(2), msg_id=g.group(3),
+                                  line=g.group(4), col=g.group(5), obj=g.group(6),
+                                  msg=g.group(7).replace("'", ""), source=dbid)
+

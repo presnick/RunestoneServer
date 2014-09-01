@@ -22,13 +22,40 @@
 	<li><a href="{{=URL('assignments','admin')}}">Back to Admin</a></li>
 	<li class="active"><a href="{{=URL('assignments','detail')}}?id={{=assignment.id}}">View</a></li>
 	<li><a href="{{=URL('assignments','update')}}?id={{=assignment.id}}">Edit</a></li>
+<<<<<<< HEAD
 	<li><a href="{{=URL('assignments','grade')}}?id={{=assignment.id}}">Grade</a></li>
+=======
+	<li><a href="{{=URL('assignments','grade')}}?id={{=assignment.id}}">Compute Totals</a></li>
+>>>>>>> upstream/master
 	<li><a href="{{=URL('assignments','release_grades')}}?id={{=assignment.id}}">Release Grades</a></li>
 </ul>
 <div class="container-fluid">
 	<div class="row">
 		<div class="col-md-6">
 			<h3>Students</h3>
+<<<<<<< HEAD
+=======
+			{{ if len(sections) > 0:}}
+			<form class="form-inline" action="{{=URL('assignments','detail')}}" method="get">
+				<input type="hidden" name="id" value="{{=assignment.id}}" />
+				{{ if selected_acid:}}
+				<input type="hidden" name="acid" value="{{=selected_acid}}" />
+				{{pass}}
+				<div class="form-group">
+					<label for="sectionSelect" class="hidden">Filter Students</label>
+					<select id="sectionSelect" class="form-control" name="section_id">
+						<option value="">All Students</option>
+					{{for section in sections:}}
+						<option {{ if section_id == section.id:}}selected="selected"{{pass}} value="{{=section.id}}">{{=section.name}}</option>
+					{{pass}}
+					</select>
+				</div>
+				<div class="form-group">
+					<input class="btn" type="submit" value="Go" />
+				</div>
+			</form>
+			{{ pass }}
+>>>>>>> upstream/master
 			<ul class="list-group">
 			{{for s in students:}}
 				{{ found = False }}
@@ -67,7 +94,11 @@
 			<h3>Problems</h3>
 			{{if selected_acid: }}
 			<div class="btn-group">
+<<<<<<< HEAD
 				<a class="btn mass-grade" data-acid="{{=selected_acid}}" href="#">Mass Grade {{=selected_acid}}</a>
+=======
+				<a class="btn mass-grade" data-acid="{{=selected_acid}}" href="#">Import Scores for {{=selected_acid}}</a>
+>>>>>>> upstream/master
 			</div>
 			{{ pass }}
 			<ul class="list-group">

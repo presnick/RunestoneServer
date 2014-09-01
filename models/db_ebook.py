@@ -64,3 +64,15 @@ db.define_table('course_instructor',
     Field('instructor', db.auth_user),
     migrate='runestone_course_instructor.table'
 )
+
+db.define_table('coach_hints',
+    Field('category','string'),
+    Field('symbol','string'),
+    Field('msg_id','string'),
+    Field('line','integer'),
+    Field('col','integer'),
+    Field('obj','string'),
+    Field('msg','string'),
+    Field('source',db.acerror_log),
+    migrate='runestone_coach_hints.table'
+    )

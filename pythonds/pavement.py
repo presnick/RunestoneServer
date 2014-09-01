@@ -7,6 +7,13 @@ import os, sys
 from sphinxcontrib import paverutils
 
 sys.path.append(os.getcwd())
+sys.path.append('../modules')
+
+updateProgressTables = True
+try:
+    from chapternames import populateChapterInfo
+except:
+    updateProgressTables = False
 
 ######## CHANGE THIS ##########
 project_name = "pythonds"
@@ -20,7 +27,7 @@ options(
 
     build = Bunch(
         builddir="../static/"+project_name,
-        sourcedir="../source/",
+        sourcedir="./source/",
         outdir="../static/"+project_name,
         confdir=".",
         template_args={'course_id':project_name,
@@ -64,5 +71,8 @@ def build(options):
         options.build.template_args['appname'] = options.build.masterapp
 
     print 'Building into ', options.build.outdir    
-    paverutils.run_sphinx(options,'build')
+    paverutils.run_sphinx(options, 'build')
 
+    if updateProgressTables:
+        print 'Creating Chapter Information'
+        populateChapterInfo(project_name, "%s/index.rst" % options.build.confdir)

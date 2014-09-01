@@ -9,7 +9,9 @@ Build Status |buildstatus|
 Documentation
 -------------
 
-Documentation for the project is on our official `documentation site <http://docs.runestoneinteractive.org>`_  
+Documentation for the project is on our official `documentation site <http://docs.runestoneinteractive.org>`_  This includes
+the list of dependencies you need to install in order to build the books included in the repository, or to set up 
+a complete server environment.
 
 The Runestone Tools are not only good for authoring the textbooks contained in this site, but can also be used for:
 

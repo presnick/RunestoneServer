@@ -1,12 +1,18 @@
 {{extend 'layout.html'}}
+<script type="text/javascript" src="http://kozea.github.com/pygal.js/javascripts/svg.jquery.js"></script>
+<script type="text/javascript" src="http://kozea.github.com/pygal.js/javascripts/pygal-tooltips.js"></script>
 
-<h1>Instructor's Dashboard</h1>
-
-
+<h1>Instructor's Dashboard for {{=course_name}}</h1>
+<div class="col-md-6">
+        <figure>
+            {{ =XML(bchart) }}
+        </figure>
+</div>
+<div class="col-md-6">
 <h3>Build Your Own Course</h3>
 <ul>
 	<li>
-		<a href="/{{=request.application}}/designer">Create a Custom Course</a>
+		<a href="/{{=request.application}}/designer">Create your own Course</a>
 	</li>
 </ul>
 
@@ -28,6 +34,9 @@
 	<li>
 	  <a href="/{{=request.application}}/admin/studentactivity">Student Activity Summary</a>
 	</li>
+    <li>
+   	  <a href="/{{=request.application}}/admin/cohortprogress">Cohort Summary</a>
+   	</li>
 	<li>
 		<a href="/{{=request.application}}/admin/showlog">Show Course Logs</a>
 	</li>
@@ -41,6 +50,7 @@
 	<li>
 	  <a href="/{{=request.application}}/admin/startdate">Change course start date</a>
 	</li>
+    <li><a href="/{{=request.application}}/admin/editcustom/assignments">Edit my assignments page</a></li>
 	<li>
 	  <a href="/{{=request.application}}/admin/rebuildcourse">Rebuild my course</a>
 	  {{ if my_vers: }}
@@ -54,8 +64,20 @@
 	</li>
 </ul>
 
+</div>
 
-
+<h3>Video Help</h3>
+<ul>
+    <li>
+        <a href="http://vimeo.com/104007810">Creating your own Course</a>
+    </li>
+    <li>
+        <a href="http://vimeo.com/104003666">The Adding and Grading Assignments</a>
+    </li>
+    <li>
+        <a href="http://vimeo.com/104002162">The Assignment Editor</a>
+    </li>
+</ul>
 <h3>Contribute to the Project</h3>
 <ul>
 	<li>

@@ -28,7 +28,7 @@ sys.path.insert(0, os.path.abspath('../modules'))
 extensions = ['sphinx.ext.mathjax','luther.sphinx.disqus','luther.sphinx.reveal','luther.sphinx.poll','luther.sphinx.video','luther.sphinx.codelens','luther.sphinx.activecode','luther.sphinx.tabbedStuff', 'luther.sphinx.assess', 'luther.sphinx.animation','luther.sphinx.meta', 'gatech.parsons']
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['../source/_templates']
+templates_path = ['./source/_templates']
 
 # The suffix of source filenames.
 source_suffix = '.rst'
@@ -41,7 +41,7 @@ master_doc = 'toc'
 
 # General information about the project.
 project = u'How to Think Like a Computer Scientist'
-copyright = u'2013 Brad Miller, David Ranum, Created using Runestone Interactive'
+copyright = u'2014 Brad Miller, David Ranum, Created using Runestone Interactive'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -145,7 +145,7 @@ html_theme_options = {
 #html_style = "style.css"
 
 # Add any paths that contain custom themes here, relative to this directory.
-html_theme_path = ["../source/_templates/plugin_layouts"]
+html_theme_path = ["./source/_templates/plugin_layouts"]
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
@@ -156,7 +156,7 @@ html_short_title ='How to Think Like a Computer Scientist'
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-#html_logo = "../source/_static/logo_small.png"
+#html_logo = "./source/_static/logo_small.png"
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
@@ -166,9 +166,12 @@ html_short_title ='How to Think Like a Computer Scientist'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['../source/_static', '../common/js', '../common/css',
-                    '../common/ext/skulpt/dist',
-                    '../common/ext/js-parsons', '../common/ext/codelens/v3', '../common/bootstrap', '../common/images']
+
+module_paths = [x.replace('.','/') for x in extensions]
+module_static_js = ['../modules/%s/js' % x for x in module_paths if os.path.exists('../modules/%s/js' % x)]
+module_static_css = ['../modules/%s/css' % x for x in module_paths if os.path.exists('../modules/%s/css' % x)]
+html_static_path = ['./source/_static', '../common/js', '../common/css',
+                     '../common/bootstrap', '../common/images'] + module_static_css + module_static_js
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.

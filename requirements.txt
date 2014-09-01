@@ -13,4 +13,8 @@ psycopg2==2.5.2
 pygal==1.4.6
 pylint==1.2.1
 sphinxcontrib-paverutils==1.6
+<<<<<<< HEAD
 wsgiref==0.1.2
+=======
+wsgiref==0.1.2
+>>>>>>> upstream/master
