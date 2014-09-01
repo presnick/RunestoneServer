@@ -4,6 +4,7 @@ import paver.setuputils
 paver.setuputils.install_distutils_tasks()
 import os, sys
 import subprocess
+#from pudb import set_trace
 
 sys.path.append(os.getcwd())
 
@@ -115,6 +116,7 @@ def devcourse(options):
 @cmdopts([('all','a','rebuild everything')])
 def pip(options):
     # project-specific pavements have defaults set but we can override here
+    #set_trace()
     params = ["paver", "build", # task name
               "--masterapp", master_app,
               "--masterurl", master_url]

@@ -12,8 +12,8 @@
     :linenothreshold: 500
 
 
-Week 1: ends **DATE**
-=======================
+Week 1: ends September 7
+=========================
 
 For this week, you have the following graded activities:
 
@@ -22,17 +22,17 @@ For this week, you have the following graded activities:
 #. Save answers to the exercises in Problem Set 1:
    :ref:`Problem Set 1 <problem_set_1>` 
 
-
 .. _response_1:
 
 Reading Response
 ----------------
 
-Coming soon.
+TBA.
 
 .. _problem_set_1:
 
 .. actex:: test_framework
+   :nopre:
    :hidecode:
    
    i = 0
@@ -102,7 +102,7 @@ Coming soon.
 
 Problem Set
 -----------
-**Due:** **TBA**
+**Due:** **Sunday, September 7th at 5 pm**
 
 **Instructions:** Write the code you want to save in the provided boxes, and click **save** for each one. The last code you have saved for each one by the deadline is what will be graded.
 
@@ -115,6 +115,7 @@ Problem Set
       
       ====
 
+      print "\n\n---\n"
       testEqual(tpa, 6, "The variable called tpa should hold the value 6 when this code is run.")
 
 
@@ -128,30 +129,147 @@ Problem Set
 
       ====
 
+      print "\n\n---\n"
       testEqual(cw, yb)
 
 
-#. Write code to print out the type of the variable ``apples_and_oranges``.
+#. Write code to print out the type of the variable ``apples_and_oranges``, the type of the variable ``abc``, and the type of the variable ``new_var``.
 
    .. actex:: ps_1_3
+      
+      apples_and_oranges = """hello, everybody
+                                how're you?"""
+
+      abc = 6.75483
+
+      new_var = 824
+
+      ====
+
+      print "\n\n---\n(There are no tests for this problem.)"
 
 
-#. There is a function we are giving you called ``square``. It takes one integer and returns the _square_ of that integer value. Write code to assign a variable callex ``xyz`` the integer value ``25``. You should use the square function.
+#. There is a function we are giving you called ``square``. It takes one integer and returns the square of that integer value. Write code to assign a variable callex ``xyz`` the integer value ``25``. You should use the square function.
 
-   .. actex:: square_function
+   .. actex:: addl_functions
+      :nopre:
       :hidecode:
 
       def square(num):
          return num**2
 
+      def greeting(st):
+         #st = str(st) # just in case
+         return "Hello, " + st
+
+      def random_digit():
+        import random
+        return random.choice([0,1,2,3,4,5,6,7,8,9])
+  
+
    .. actex:: ps_1_4
-      :include: square_function, test_framework
+      :include: addl_functions, test_framework
+
+      # Want to make sure there really is a function called square? Uncomment the following line and press run.
+
+      #print type(square)
 
       xyz = ""
       
       ====
 
+      print "\n\n---\n"
       testType(xyz,"int", "The type of the value in variable xyz should be an int")
       testEqual(xyz,25,"The value of the variable xyz should be 25")
       
 
+#. Write code to assign the return value of the function call ``square(3)`` to the variable ``new_number``.
+
+    .. actex:: ps_1_5
+       :include: addl_functions, test_framework
+
+
+       ====
+
+       print "\n\n---\n"
+       new_number = None
+       if new_number:
+          testEqual(new_number, square(3))
+       else:
+          print "Failed test: the variable new_number does not exist yet"
+
+
+#. Write in a comment what each line of this code does. 
+
+    .. actex:: ps_1_6
+       :include: test_framework, addl_functions
+
+       # Here's an example.
+       xyz = 12 # The variable xyz is being assigned the value 12, which is an integer
+
+       # Now do the same for these!
+       a = 6
+
+       b = a
+
+       # make sure to be very clear and detailed about the following line of code
+       orange = square(b)
+
+       print a
+
+       print b
+
+       print orange
+
+       pear = square
+
+       print pear
+
+#. There are a couple more functions we're giving you in this problem set. One is a function called ``greeting``, which takes any string and adds ``"Hello, "`` in front of it. (You can see examples in the code.) Another one is a function called ``random_digit``, which returns a value of any random integer between 0 and 9 (inclusive). (You can also see examples in the code.)
+
+  Write code that assigns the variable ``func_var`` the value of the **function** ``greeting``. 
+
+  Then, write code that assigns the variable ``new_digit`` to the **return value** of the function ``random_digit``.
+
+  Then, write code that assigns the variable ``digit_func`` to the value of the **function** ``random_digit``.
+
+
+    .. actex:: ps_1_7
+      :include: addl_functions, test_framework
+
+      # For example
+      print greeting("Jackie")
+      print greeting("everybody")
+      print greeting("sdgadgsal")
+      # Try running all this code more than once, so you can see how calling the function
+      # random_digit works.
+      print random_digit()
+      print random_digit()
+
+      # Write code that assigns the variables as mentioned in the instructions below this line.
+
+      ====
+
+      print "\n\n---\n"
+      testType(func_var,"function", "The variable func_var should be assigned the value of the function once this code is run")
+      testType(new_digit, "int")
+      testType(digit_func, "function")
+
+#. Now write code that assigns the variable ``newval`` to hold the **return value** of ``greeting("everyone in class")``.
+
+    .. actex:: ps_1_8
+      :include: addl_functions, test_framework
+
+      ====
+
+      print "\n\n---\n"
+      testEqual(newval, greeting("everyone in class"))
+    
+
+#. This code causes an error. Why? Write a comment explaining.
+
+    .. actex:: ps_1_9
+      :include: addl_functions, test_framework
+
+      another_variable = "?!"
+      b = another_variable()
