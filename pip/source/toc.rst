@@ -10,9 +10,6 @@ Assignments
 .. toctree::
    :maxdepth: 2
 
-<<<<<<< HEAD
-   Assignments/week1.rst
-=======
    Assignments/week13.rst
    Assignments/week12.rst
    Assignments/week11.rst
@@ -25,7 +22,6 @@ Assignments
    Assignments/week4.rst
    Assignments/week3.rst
    Assignments/week2.rst
->>>>>>> upstream/master
 
 General Introduction
 ::::::::::::::::::::

@@ -168,18 +168,6 @@ def allbooks(options):
     if 'all' in options.allbooks:
         opts['all'] = True
 
-<<<<<<< HEAD
-    #options.thinkcspy = opts
-    #options.pythonds = opts
-    #options.overview = opts
-
-    #thinkcspy(options)
-    #pythonds(options)
-    pip(options)
-    #overview(options)
-
-
-=======
     options.thinkcspy = opts
     options.pythonds = opts
     options.overview = opts
@@ -191,4 +179,4 @@ def allbooks(options):
     overview(options)
     pip(options)
     pip2(options)
->>>>>>> upstream/master
+
