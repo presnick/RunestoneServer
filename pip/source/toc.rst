@@ -9,18 +9,7 @@ Assignments
 .. toctree::
    :maxdepth: 2
 
-   Assignments/week13.rst
-   Assignments/week12.rst
-   Assignments/week11.rst
-   Assignments/week10.rst
-   Assignments/week9.rst
-   Assignments/week8.rst
-   Assignments/week7.rst
-   Assignments/week6.rst
-   Assignments/week5.rst
-   Assignments/week4.rst
-   Assignments/week3.rst
-   Assignments/week2.rst
+   Assignments/week1.rst
 
 General Introduction
 ::::::::::::::::::::
