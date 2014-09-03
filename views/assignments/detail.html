@@ -22,13 +22,19 @@
 	<li><a href="{{=URL('assignments','admin')}}">Back to Admin</a></li>
 	<li class="active"><a href="{{=URL('assignments','detail')}}?id={{=assignment.id}}">View</a></li>
 	<li><a href="{{=URL('assignments','update')}}?id={{=assignment.id}}">Edit</a></li>
+<<<<<<< HEAD
+	<li><a href="{{=URL('assignments','grade')}}?id={{=assignment.id}}">Grade</a></li>
+=======
 	<li><a href="{{=URL('assignments','grade')}}?id={{=assignment.id}}">Compute Totals</a></li>
+>>>>>>> upstream/master
 	<li><a href="{{=URL('assignments','release_grades')}}?id={{=assignment.id}}">Release Grades</a></li>
 </ul>
 <div class="container-fluid">
 	<div class="row">
 		<div class="col-md-6">
 			<h3>Students</h3>
+<<<<<<< HEAD
+=======
 			{{ if len(sections) > 0:}}
 			<form class="form-inline" action="{{=URL('assignments','detail')}}" method="get">
 				<input type="hidden" name="id" value="{{=assignment.id}}" />
@@ -49,6 +55,7 @@
 				</div>
 			</form>
 			{{ pass }}
+>>>>>>> upstream/master
 			<ul class="list-group">
 			{{for s in students:}}
 				{{ found = False }}
@@ -87,7 +94,11 @@
 			<h3>Problems</h3>
 			{{if selected_acid: }}
 			<div class="btn-group">
+<<<<<<< HEAD
+				<a class="btn mass-grade" data-acid="{{=selected_acid}}" href="#">Mass Grade {{=selected_acid}}</a>
+=======
 				<a class="btn mass-grade" data-acid="{{=selected_acid}}" href="#">Import Scores for {{=selected_acid}}</a>
+>>>>>>> upstream/master
 			</div>
 			{{ pass }}
 			<ul class="list-group">

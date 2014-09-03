@@ -4,6 +4,7 @@ import paver.setuputils
 paver.setuputils.install_distutils_tasks()
 import os, sys
 import subprocess
+#from pudb import set_trace
 
 sys.path.append(os.getcwd())
 
@@ -130,6 +131,24 @@ def pip2(options):
 
 @task
 @cmdopts([('all','a','rebuild everything')])
+def pip(options):
+    # project-specific pavements have defaults set but we can override here
+    #set_trace()
+    params = ["paver", "build", # task name
+              "--masterapp", master_app,
+              "--masterurl", master_url]
+    if 'all' in options.pip:
+        params.append("-a")
+
+    os.chdir("pip")
+    subprocess.call(params)
+    os.chdir("..")
+
+    if minify_js:
+        sh('./minifyjs.py %s' % "static/pip")
+
+@task
+@cmdopts([('all','a','rebuild everything')])
 def java4python(options):
     # project-specific pavements have defaults set but we can override here
     params = ["paver", "build", # task name
@@ -160,3 +179,4 @@ def allbooks(options):
     overview(options)
     pip(options)
     pip2(options)
+

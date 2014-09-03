@@ -230,6 +230,7 @@ def update():
         problems_delete_form = problems_delete_form,
         )
 
+
 @auth.requires(lambda: verifyInstructorStatus(auth.user.course_name, auth.user), requires_login=True)
 def grade():
     course = db(db.courses.id == auth.user.course_id).select().first()
@@ -276,6 +277,39 @@ def fill_empty_scores(scores=[], students=[], student=None, problems=[], acid=No
                 user = student,
                 acid = p.acid,
                 ))
+
+@auth.requires(lambda: verifyInstructorStatus(auth.user.course_name, auth.user), requires_login=True)
+def release_grades():
+	course = db(db.courses.id == auth.user.course_id).select().first()
+	assignment = db(db.assignments.id == request.get_vars.id).select().first()
+
+	if assignment.release_grades():
+		session.flash = "Grades Relased"
+	if request.env.HTTP_REFERER:
+		return redirect(request.env.HTTP_REFERER)
+	return redirect("%s?id=%d" % (URL('assignments','detail'), assignment.id))
+
+def fill_empty_scores(scores=[], students=[], student=None, problems=[], acid=None):
+	for student in students:
+		found = False
+		for sc in scores:
+			if sc.user.id == student.id:
+				found = True
+		if not found:
+			scores.append(score(
+				user = student,
+				acid = acid,
+				))
+	for p in problems:
+		found = False
+		for sc in scores:
+			if sc.acid == p.acid:
+				found = True
+		if not found:
+			scores.append(score(
+				user = student,
+				acid = p.acid,
+				))
 
 @auth.requires(lambda: verifyInstructorStatus(auth.user.course_name, auth.user), requires_login=True)
 def detail():

@@ -12,228 +12,279 @@
     :linenothreshold: 500
 
 
-
-Week 2: ends January 17
-=======================
+Week 2: ends Sunday, September 14
+=================================
 
 For this week, you have the following graded activities:
 
-1. Do the mutliple choice questions and exercises in the textbook chapters, including the ones at the bottom of the chapters, below the glossary. Don't forget to click Save for each of the exercises.
+#. Save answers to the exercises in Problem Set 2:
+   :ref:`Problem Set 2 <problem_set_2>` 
+
+
+.. actex:: test_framework_2
+   :nopre:
+   :hidecode:
    
-   * Before Tuesday's class: 
-      * :ref:`Simple Python Data <simple_python_data>`
-      * :ref:`Debugging Interlude <debugging_1>`
-   * Before Thursday's class:
-      * :ref:`Sequences <sequences_chap>`
+   i = 0
 
-#. Turn in the reading response, by 8PM the night before your registered section meets
+   def testEqual(actual, expected, feedback = ""):
+       global i
+       i += 1
+       print "--",
 
-   * *The Most Human Human*, Chapter 3, "The Migratory Soul"
-   * :ref:`Reading response 1 <response_1>`
+       if type(expected) != type(actual):
+           print "Failed test %d: %s\n\ttype of expected and actual don't match" % (i, feedback)
+           return False
+       if type(expected) == type(1):
+           # they're integers, so check if exactly the same
+           if actual == expected:
+               print'Pass test %d: %s'  % (i, feedback)
+               return True
+       elif type(expected) == type(1.11):
+           # a float is expected, so just check if it's very close, to allow for
+           # rounding errors
+           if abs(actual-expected) < 0.00001:
+               print'Pass test %d: %s'  % (i, feedback)
+               return True
+       elif type(expected) == type([]):
+           if len (expected) != len(actual):
+               print "Failed test %d: %s\n\tLengths don't match" % (i, feedback)
+               return False
+           else:
+               for (x, y) in zip(expected, actual):
+                   if x != y:
+                       print "Failed test %d: %s\n\titems in expected and actual do not match" % (i, feedback)
+                       return False
+               print'Pass test %d: %s'  % (i, feedback)
+               return True
+       else:
+           # check if they are equal
+           if actual == expected:
+               print'Pass test %d: %s'  % (i, feedback)
+               return True
+       print 'Failed test %d: %s\n\texpected:\t%s\n\tgot:\t\t%s' % (i, feedback, expected, actual)
+       return False
+
+   def testType(actual, typeName, feedback = ""):
+       global i
+       i = i+1
+       print "--",
+       types = {"string": type(""),
+                "dictionary": type({}),
+                "list": type([]),
+                "int": type(1),
+                "float": type(1.0),
+                "None": type(None),
+                "function": type(lambda x: x)
+                }
+       if typeName not in types.keys():     
+           print('Failed test %d: %s\n\tunknown typeName %s specified.\n\tShould be one of %s' % (i, feedback, typeName, types.keys()))
+           return False
+       else:
+           expected = types[typeName]
+       if type(actual) == expected:
+           print'Pass test %d: %s'  % (i, feedback)
+           return True
+       else:
+           print('Failed test %d: %s\n\texpected type %s\n\tgot %s' % (i, feedback, expected, type(actual)))
+           return False
+
+.. actex:: addl_functions_2
+    :nopre:
+    :hidecode:
+
+    import turtle
+
+    def add_lengths(s1,s2):
+        return len(s1) + len(s2)
+
+    def random_digit():
+        import random
+        return random.choice([0,1,2,3,4,5,6,7,8,9])
+
+    def square(x):
+        return x**2
 
 
-#. Save answers to the six exercises in Problem Set 1:
-   * :ref:`Problem Set 1 <problem_set_1>` 
-
-
-.. _response_1:
-
-Reading Response
-----------------
-
-**Due 8PM the night before your section meets**
-
-Don't forget to click "save" for each of these.
-
-1. If you had to give up either your left-brain functions or your right-brain functions, which would you give up?
-
-   .. actex:: rr_1_1
-   
-      # Fill in your answer on the lines between the triple quotes
-      s = """
-      
-      
-      """
-      
-#. What's one interesting thing you learned from the chapter? 
-
-   .. actex:: rr_1_2
-   
-      # Fill in your answer on the lines between the triple quotes
-      s = """
-      
-      
-      """
-
-#. What's one question you have or something that you'd like to have discussed during section?
-
-   .. actex:: rr_1_3
-   
-      # Fill in your answer on the lines between the triple quotes
-      s = """
-      
-      
-      """
-
-
-
-.. _problem_set_1:
+.. _problem_set_2:
 
 Problem Set
 -----------
-**Due:** **Friday, January 17, 5 pm**
+**Due:** **Sunday, September 14th at 5 pm**
 
 **Instructions:** Write the code you want to save in the provided boxes, and click **save** for each one. The last code you have saved for each one by the deadline is what will be graded.
 
-1. (1 pt) Given the following code, write a print statement that will pick out the letter ``"o"``, from the string ``s``. 
+1. Assign the variable ``fl`` the value of the first element of the string value in ``original_str``. Assign the variable ``last_l`` the value of the last element of the string value in ``original_str``.
 
-   .. actex:: ps_1_1
+   .. actex:: ps_2_1
+      :include: test_framework_2
 
-       s = "Hello, all"
+      original_str = "The quick brown rhino jumped over the extremely lazy fox."
+
+      # assign variables as specified below this line!
+
+      ====
+
+      print "\n\n---\n"
+      testEqual(fl,original_str[0], "the value of the var fl and the first element of original_str should be equal")
+      testEqual(last_l, original_str[-1], "the value of the var last_l and the last element of original_str should be equal")
+
+#. See comments for instructions.
+
+    .. actex:: ps_2_2
+        :include: test_framework_2
+
+        sent = """
+        He took his vorpal sword in hand:
+        Long time the manxome foe he sought
+        So rested he by the Tumtum tree,
+        And stood awhile in thought.
+        - Jabberwocky, Lewis Carroll (1832-1898)"""
+
+        short_sent = """
+        So much depends
+        on
+        """
+
+        # How long (how many characters) is the string in the variable sent?
+        # Write code to assign the length of the string to a variable called len_of_sent.
+
+
+        # How long is the string in the variable short_sent?
+        # Write code to assign the length of that string to a variable called short_len.
+
+
+        # Print out the value of short_len (and len_of_sent, if you want!) so you can see it. 
+
+
+        # Write a comment below this line to explain why these values are larger than you might expect. Why is the length of short_sent longer than 15 characters?
+
+
+        # Assign the index of the first 'v' in the value of the variable sent TO a variable called index_of_v. (Hint: we saw a function built into Python that can help with this)
+
+        ====
+
+        print "\n\n---\n"
+        testEqual(len_of_sent,len(sent))
+        testEqual(short_len,len(short_sent))
+        testEqual(index_of_v, sent.find('v'))
+
+
+
+#. See comments for instructions again. (Keep in mind: All ordinal numbers in *instructions*, like "third" or "fifth" refer to the way HUMANS count. How do you write code to find the right things?)
+
+    .. actex:: ps_2_3
+        :include: test_framework_2
+
+        num_lst = [4,16,25,9,100,12,13]
+        mixed_bag = ["hi", 4,6,8, 92.4, "see ya", "23", 23]
+
+        # Assign the value of the third element of num_lst to a variable called third_elem
+
+        # Assign the value of the sixth element of num_lst to a variable called elem_sixth
+
+        # Assign the length of num_lst to a variable called num_lst_len
+
+        # Write a comment explaining the difference between mixed_bag[-1] and mixed_bag[-2]
+        # (you may want to print out those values so you can make sure you know what they are!)
+
+        # Write code to print out the type of the third element of mixed_bag
+
+        # Write code to assign the **type of the fifth element of mixed_bag** to a variable called fifth_type
+
+        # Write code to assign the **type of the first element of mixed_bag** to a variable called another_type
+
+        ====
+
+        print "\n\n---\n"
+        testEqual(third_elem, num_lst[2])
+        testEqual(elem_sixth, num_lst[5])
+        testEqual(num_lst_len,len(num_lst_len))
+        testEqual(fifth_type,type(mixed_bag[4]))
+        testEqual(another_type, type(mixed_bag[0]))
+
+
+#. There is a function we are giving you for this problem set that takes two strings, and returns the length of both of those strings added together, called ``add_lengths``. We are also including the functions from Problem Set 1 called ``random_digit`` and ``square`` in this problem set. 
+
+    Now, take a look at the following code and related questions, in this code window.
+
+    .. actex:: ps_2_4
+        :include: addl_functions_2
+
+        new_str = "'Twas brillig"
+
+        y = add_lengths("receipt","receive")
+
+        x = random_digit()
+
+        z = new_str.find('b')
+
+        l = new_str.find("'")
+
+        # notice that this line of code is made up of a lot of different expressions
+        fin_value = square(len(new_str)) + (z - l) + (x * random_digit())
+
+        # DO NOT CHANGE ANY CODE ABOVE THIS LINE
+        # But below here, putting print statements and running the code may help you!
+
+
+        # The following questions are based on that code. All refer to the types of the 
+        #variables and/or expressions after the above code is run.
+
+        #####################   
+
+        # Write a comment explaining each of the following, after each question.
+        # Don't forget to save!
+
+        # What is square? 
+
+        # What type of expression is square(len(new_str))? What type will that evaluate to?
+
+        # What type is z?
+
+        # What type is l?
+
+        # What type is the expression z-l?
+
+        # What type is x?
+
+        # What is random_digit? How many inputs does it take?
+
+        # What type does the expression (x * random_digit()) evaluate to?
+
+        # Given all this information, what type will fin_value hold once all this code is run?
+
+
+#. Here's another complicated expression, using the Turtle framework we talked about. Write comments to answer the questions that follow the code. You may want to write additional code expressions, like printing the type of different variables (e.g. ``print type(x)``) to help you.)
+
+   .. actex:: ps_2_5
+      :include: addl_functions_2
+
+      turtle = Turtle()
+      x = random_digit() + 1
+      turtle.speed = 3
+      turtle.move(square(x*turtle.speed))
+
+      # Think about what happens as this code is run, in what order it gets interpreted.
+      # Write some code statements to help you think about this, like mentioned in directions.
+
+
+      # Then answer these questions, each in a comment:
+
+      # What type is the variable turtle?
+
+      # What type is the variable x?
+
+      # What type is the expression turtle.speed?
+
+      # What type is turtle.move? What does that mean?
+
+      # What is square? How many inputs does it take?
+
+      # What type is x * turtle.speed?
+
+      # What type does square(x*turtle.speed) evaluate to?
+
+
+
       
-      
-
-#. (1 pt) Write code to print this string WITHOUT any ``&`` signs.
-
-      This is a really fun&& homework assign&ment. And & I love&& &&Python.
-
-   .. actex:: ps_1_2
-   
-         # Here's the string provided for you
-         nst = "This is a really fun&& homework assign&ment. And & I love&& &&Python."
-      
-      # Write your code to print this string without any "&s", below:
-      
-
-#. (1 pt) What is the index of the first letter "h" in this sentence? Write code to find it, and print it. (Remember, an index is the __th element of a string or a list, for example.)
-
-      This is a really fun homework assigment, and I love Python.
-
-   .. actex:: ps_1_3
-   
-         # Here's the sentence, provided for you
-         st = "This is a really fun homework assigment, and I love Python."
-      
-      ## Write your code to find the first index of the letter "h" below:
-   
-
-#. (3 pts) See comments for instructions.
-
-   .. actex:: ps_1_4
-      
-      abc = [1,2,3,4,5,6,7]
-      
-      # What is the type of value is in the variable abc? 
-      # Write code to find out what type the value of abc is.
-      
-      ## Write the type here: _______
-      
-      # write code to extract and print the first three elements of abc
-      
-      # write code to extract and print the last element of abc
-      
-      # write code to extract and print the number 4 from abc
-      
-      # write code to extract and print the number 6 from abc
-      
-      # write code to find out what type the first element of abc is, and print it.
-
-
-
-#. (2 pts) See the comments for instructions.
-
-   .. actex:: ps_1_5
-   
-      xy_lst = ["hello","goodbye","welcome","106","si 106"]
-      abc_sentence = "Welcome to SI 106, everyone."
-      
-      # write code to extract and print the first element of xy_lst
-      
-      # write code to extract and print the last element of xy_lst
-      
-      # write code to extract and print the first character of abc_sentence
-      
-      # write code to extract and print the last character of abc_sentence
-
-         
-#. (2 pts) Write code to ask the user for their name and print out ``"Nice to meet you, <THEIR NAME>"``
-
-   .. actex:: ps_1_6
-   
-      # For example, if you enter "Nick", your code should then print "Nice to meet you, Nick" abc
-            print abc[:3]
-            ## other possibilities include:
-            # print a[0], a[1], a[2]
-            
-            # write code to extract and print the last element of abc
-            print abc[-1]
-            
-            # write code to extract and print the number 4 from abc
-            print abc[3]
-            
-            # write code to extract and print the number 6 from abc
-            print abc[5]
-            
-            # write code to find out what type the first element of abc is, and print it.
-            print type(abc[0])
-
-
-
-#. (2 pts) See the comments for instructions.
-
-   .. tabbed:: ps_1_5s
-
-      .. tab:: Problem
-
-         .. actex:: ps_1_5
-         
-            xy_lst = ["hello","goodbye","welcome","106","si 106"]
-            abc_sentence = "Welcome to SI 106, everyone."
-            
-            # write code to extract and print the first element of xy_lst
-            
-            # write code to extract and print the last element of xy_lst
-            
-            # write code to extract and print the first character of abc_sentence
-            
-            # write code to extract and print the last character of abc_sentence
-
-      .. tab:: Solution
-
-         .. actex:: ps_1_5_a
-         
-            xy_lst = ["hello","goodbye","welcome","106","si 106"]
-            abc_sentence = "Welcome to SI 106, everyone."
-            
-            # write code to extract and print the first element of xy_lst
-            print xy_lst[0]
-            
-            # write code to extract and print the last element of xy_lst
-            print xy_lst[-1]
-            
-            # write code to extract and print the first character of abc_sentence
-            print abc_sentence[0]
-            
-            # write code to extract and print the last character of abc_sentence
-            print abc_sentence[-1]
-
-            ## note that "first" and "last" for sequences are easy when you program! 
-
-         
-#. (2 pts) Write code to ask the user for their name and print out ``"Nice to meet you, <THEIR NAME>"``
-   
-   .. tabbed:: ps_1_6s
-
-      .. tab:: Problem
-
-         .. actex:: ps_1_6
-         
-            # For example, if you enter "Nick", your code should then print "Nice to meet you, Nick"
-
-      .. tab:: Solution
-
-         .. actex:: ps_1_6_a
-         
-            # For example, if you enter "Nick", your code should then print "Nice to meet you, Nick"
-            nm = raw_input("Please enter your name: ")
-            print "Nice to meet you,",nm
