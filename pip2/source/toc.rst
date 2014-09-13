@@ -175,7 +175,7 @@ Unix
 .. toctree::
    :maxdepth: 2
 
-   Unix/FoldersAndDirectories.rst
+   Unix/FoldersAndPaths.rst
    Unix/CommandPrompt.rst
 
 
