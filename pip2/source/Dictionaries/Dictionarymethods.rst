@@ -54,9 +54,9 @@ a dictionary implicitly iterates over its keys.
 As we saw earlier with strings and lists, dictionary methods use dot notation,
 which specifies the name of the method to the right of the dot and the name of
 the object on which to apply the method immediately to the left of the dot. The empty
-parentheses in the case of ``keys`` indicate that this method takes no parameters.
+parentheses in the case of ``keys`` indicates that this method takes no parameters.
 
-The ``values`` and ``items`` methods are similar to ``keys``. They return  view objects which can be turned
+The ``values`` and ``items`` methods are similar to ``keys``. They return view objects which can be turned
 into lists or iterated over directly.  Note that the items are shown as tuples containing the key and the associated value.
 
 .. activecode:: chp12_dict8
@@ -141,7 +141,7 @@ in the case where the key is not present.  This can be seen in the final example
    :answer_b: False
    :correct: a
    :feedback_a: Yes, dog is a key in the dictionary.
-   :feedback_b: The in operator returns True if a key is in the dictionary, False otherwise.
+   :feedback_b: The in operator returns True if a key is in the dictionary, or else it returns False.
    
    What is printed by the following statements?
    
