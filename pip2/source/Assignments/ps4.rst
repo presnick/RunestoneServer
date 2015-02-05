@@ -128,33 +128,33 @@ Problem Set
 
 .. activecode:: ps_4_1
 
-   animals = {'cows': 2, 'chickens': 8, 'pigs': 4, 'mice': 72, 'cats': 9,'dogs': 1}
+  animals = {'cows': 2, 'chickens': 8, 'pigs': 4, 'mice': 72, 'cats': 9,'dogs': 1}
 
 	# Write code to look up the number of chickens
-   # Old McDonald recorded and assign it to the 
-   # variable num_chickens. 
-   # (Do not hard-code values! num_chickens = 8 will not earn points.)
+  # Old McDonald recorded and assign it to the 
+  # variable num_chickens. 
+  # (Do not hard-code values! num_chickens = 8 will not earn points.)
 
-   # Write code to add the key-value pair "yak":3
-   # to the dictionary stored in the variable called animals.
+  # Write code to add the key-value pair "yak":3
+  # to the dictionary stored in the variable called animals.
 
-   # Write code to increase the value for the key 
-   # "dogs" in the animals dictionary we've provided) by 1.
+  # Write code to increase the value for the key 
+  # "dogs" in the animals dictionary we've provided) by 1.
 
-   ====
+  ====
    
-   import test
-   try: 
-      test.testEqual(num_chickens, animals['chickens'])
-   except:
-      print "either num_chickens or animal['chickens'] is undefined"
+  import test
+  try: 
+    test.testEqual(num_chickens, animals['chickens'])
+  except:
+    print "either num_chickens or animal['chickens'] is undefined"
 
-   try:
-      test.testEqual(animals['yak'], 3)
-   except:
-      print "key 'yak' is not set in dictionary num_chickens"
-      
-   test.testEqual(animals['dogs'], 2)
+  try:
+    test.testEqual(animals['yak'], 3)
+  except:
+    print "key 'yak' is not set in dictionary num_chickens"
+    
+  test.testEqual(animals['dogs'], 2)
 
 
 2. See comments in code for instructions.
@@ -186,7 +186,7 @@ Problem Set
 
    print "\n---\n\n"
    print "There are no tests for this problem."
-
+   
 
 3. Write code to count the number of strings in list ``items`` that have the character ``w`` in it. Assign that number to the variable ``acc_num``. HINT 1: Use the accumulation pattern! HINT 2: the ``in`` operator checks whether a letter or substring is present in a string.
 
