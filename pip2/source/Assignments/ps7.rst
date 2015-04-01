@@ -17,7 +17,7 @@ Activities through 3/1
 
 You have the following graded activities:
 
-1. 654654Class prep. Don't forget: always access the textbook by clicking on the Textbook link from cTools, so that you'll be logged in and get credit for doing the prep.
+1. Class prep. Don't forget: always access the textbook by clicking on the Textbook link from cTools, so that you'll be logged in and get credit for doing the prep.
    
    * Before Monday's class:
        * Read :ref:`Sorting<sort_chap>`, and do the exercises in that chapter
@@ -32,7 +32,7 @@ You have the following graded activities:
    
 #. Exam preparation
 
-   * In CTools you will find a practice midterm exam; another one will be posted closer to the exam time
+   * In CTools you will find a practice midterm exam and a solution set.
    
    * Suggested practice for making best use of the problem sets for review
       * Go through all the problem sets, looking at your answers and comparing them to the solution set answers. (The solution sets are all embedded in the problem sets; we have been releasing them when we release the grades for each problem set.)
