@@ -11,7 +11,7 @@
 Extracting from Nested Data
 ===========================
 
-A common problem, especially when dealing with data returned from a web site, is to extract certain elements from deep inside a nested data structure. In principle, there's nothing more difficult about pulling something out from deep inside a nested data structure: with lists, you use [] to index or a for loop to get them them all; with dictionaries, you get the value associated with a particular key using []. But it's easy to get lost in the process and think you've extracted something different than you really have.
+A common problem, especially when dealing with data returned from a web site, is to extract certain elements from deep inside a nested data structure. In principle, there's nothing more difficult about pulling something out from deep inside a nested data structure: with lists, you use [] to index or a for loop to get them them all; with dictionaries, you get the value associated with a particular key using []. But it's easy to get lost in the process and think you've extracted something different than you really have. Because of this, we have created a usable technique to help you during the debugging process. 
 
 Follow the system described below and you will have success with extracting nested data. The process involves the following steps:
 
