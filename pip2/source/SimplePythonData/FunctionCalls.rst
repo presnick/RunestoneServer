@@ -14,17 +14,17 @@ Python can compute new values with function calls. You are familiar with the ide
 
 Python adopts a similar syntax for invoking functions. If there is a named function ``foo`` that takes a single input, we can invoke foo on the value 5 by writing ``foo(5)``.
 
-There are many built-in functions available in python. You'll be seeing some in this chapter and the next couple of chapterse. 
+There are many built-in functions available in python. You'll be seeing some in this chapter and the next couple of chapters.
 
 It is also possible for programmers to define new functions in their programs. You will learn how to do that later in the course. For now, you just need to learn how to invoke, or call, a function, and understand that the execution of the function returns a computed value.
 
 .. activecode:: functionCalls_1
    :nocanvas:
    :hidecode:
-   
+
    def square(x):
       return x * x
-      
+
    def sub(x, y):
       return x - y
 
@@ -33,8 +33,8 @@ We've defined two functions above. The code is hidden so as not to bother you (y
 .. activecode:: functionCalls_2
    :include: functionCalls_1
    :nocanvas:
-   
-   
+
+
    print square(3)
    square(5)
    print sub(6, 4)
@@ -50,8 +50,8 @@ Remember the note that some kinds of python objects don't have a nice printed re
 .. activecode:: functionCalls_3
    :include: functionCalls_1
    :nocanvas:
-   
-   
+
+
    print square
    print sub
 
@@ -67,11 +67,11 @@ Remember the note that some kinds of python objects don't have a nice printed re
       :feedback_d: The print statement makes the results print
 
       What will the output be from this code?
-       
+
       .. code-block:: python
-       
+
          print sub(5, 8)
-         
+
 .. mchoicemf:: exercise_functionCalls_2
       :answer_a: sub(5, 8)
       :answer_b: -3
@@ -84,11 +84,11 @@ Remember the note that some kinds of python objects don't have a nice printed re
       :feedback_d: The character sting is treated as a literal and printed out, without executing
 
       What will the output be from this code?
-       
+
       .. code-block:: python
-       
+
          print "sub(5, 8)"
-         
+
 .. mchoicemf:: exercise_functionCalls_3
       :answer_a: sub(5, 8)
       :answer_b: -3
@@ -101,11 +101,11 @@ Remember the note that some kinds of python objects don't have a nice printed re
       :feedback_d: There is no print statement
 
       What will the output be from this code?
-       
+
       .. code-block:: python
-       
+
          sub(5, 8)
-         
+
 .. mchoicemf:: exercise_functionCalls_4
       :answer_a: sub(5, 8)
       :answer_b: -3
@@ -118,7 +118,7 @@ Remember the note that some kinds of python objects don't have a nice printed re
       :feedback_d: There is no print statement
 
       What will the output be from this code?
-       
+
       .. code-block:: python
-       
+
          "sub(5, 8)"
