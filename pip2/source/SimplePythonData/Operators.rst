@@ -29,7 +29,7 @@ token for multiplication, and ``**`` is the token for exponentiation.
 Addition, subtraction, multiplication, and exponentiation all do what you
 expect.
 
-Remember that if we want to see the results of the computation, the program needs to specify that with a print statement. The first three computations occur, but thir results are not printed out.
+Remember that if we want to see the results of the computation, the program needs to specify that with a print statement. The first three computations occur, but their results are not printed out.
 
 .. activecode:: ch02_15
     :nocanvas:
