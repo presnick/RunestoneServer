@@ -23,7 +23,7 @@ clear::
     5 ** 2
     (5 + 9) * (15 - 7)
 
-The tokens ``+``, ``-``, and ``*``, and the use of parenthesis for grouping,
+The tokens ``+``, ``-``, and ``*``, and the use of parentheses for grouping,
 mean in Python what they mean in mathematics. The asterisk (``*``) is the
 token for multiplication, and ``**`` is the token for exponentiation.
 Addition, subtraction, multiplication, and exponentiation all do what you
@@ -40,7 +40,7 @@ Remember that if we want to see the results of the computation, the program need
     print 7 + 5
 
 In Python 2.7, which we will be using, the division operator ``/`` produces a floating point result
-if either of the operands is  of type **float**. If both are of type **int**, then 
+if either of the operands is  of type **float**. If both are of type **int**, then
 it performs **integer division**, which truncates its result down to the next smallest integer.
 
 
@@ -54,7 +54,7 @@ it performs **integer division**, which truncates its result down to the next sm
 
 Pay particular attention to the examples above. Note that it truncates, rather than rounding, so ``9/5`` is ` and ``5/9`` is 0.
 
-Take care that you choose 
+Take care that you choose
 the correct flavor of the division operator.  If you want a truncated integer output,
 make both of your operands integers. If you want a floating point result, make
 one or both of your operands into floats.
@@ -64,7 +64,7 @@ you can use the operator ``//``.
 
 .. activecode:: ch02_16a
    :nocanvas:
-   
+
    print 7.0 / 3.0
    print 7.0 // 3.0
 
@@ -106,7 +106,7 @@ Similarly ``x % 100`` yields the last two digits.
    :feedback_c: Because 18 and 4 are ints, / does integer division.
    :feedback_d: Because 18 and 4 are ints, / does integer division and produces an integer.
    :feedback_e: / does division. Perhaps you were thinking of %, which computes the remainder?
-   
+
    What value is printed when the following statement executes?
 
    .. code-block:: python
@@ -125,7 +125,7 @@ Similarly ``x % 100`` yields the last two digits.
    :feedback_c: Because 18.0 is a float, / does exact division.
    :feedback_d: Because 18.0 is a float, / does exact division.
    :feedback_e: / does division. Perhaps you were thinking of %, which computes the remainder?
-   
+
    What value is printed when the following statement executes?
 
    .. code-block:: python
@@ -146,7 +146,7 @@ Similarly ``x % 100`` yields the last two digits.
    :feedback_c: - The // operator does integer division, but it yields a float when one of the operands is a float/
    :feedback_d: - The // operator does integer division, and  it yields a float when one of the operands is a float.
    :feedback_e: - / does division. Perhaps you were thinking of %, which computes the remainder?
-   
+
    What value is printed when the following statement executes?
 
    .. code-block:: python
@@ -175,4 +175,3 @@ Similarly ``x % 100`` yields the last two digits.
 .. index:: input, input dialog
 
 .. _input:
-
