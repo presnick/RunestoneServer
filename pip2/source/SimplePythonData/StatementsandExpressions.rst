@@ -19,7 +19,7 @@ statements,  and ``import`` statements.  (There are other kinds too!)
 .. index:: expression
 
 An **expression** is a combination of literals, variable names, operators, and calls
-to functions. Expressions need to be evaluated. The result of evaluating an expression is a *value* or *object*. 
+to functions. Expressions need to be evaluated. The result of evaluating an expression is a *value* or *object*.
 
 If you ask Python to ``print`` an expression, the interpreter **evaluates** the expression and displays the result.
 
@@ -30,10 +30,10 @@ If you ask Python to ``print`` an expression, the interpreter **evaluates** the 
     print len("hello")
 
 In this example ``len`` is a built-in Python function that returns the number
-of characters in a string. 
+of characters in a string.
 
 The *evaluation of an expression* produces a value, which is why expressions
-can appear on the right hand side of assignment statements. A lilteral all by
+can appear on the right hand side of assignment statements. A literal all by
 itself is a simple expression, and so is a variable.  Evaluating a variable gives the value that the variable refers to.
 
 .. activecode:: ch02_14
@@ -49,10 +49,10 @@ In a program, anywhere that a literal value (a string or a number) is acceptable
 
 literal
    e.g., "Hello" or 3.14
-   
+
 variable name
    e.g., x or len
-   
+
 operator expression
    <expression> operator-name <expression>
 
@@ -71,13 +71,13 @@ Similarly, when calling a function, instead of putting a literal inside the pare
 .. activecode:: functionCalls_1
    :nocanvas:
    :hidecode:
-   
+
    def square(x):
       return x * x
-      
+
    def sub(x, y):
       return x - y
-      
+
 .. activecode:: ch02_14b
    :nocanvas:
    :include: functionCalls_1
@@ -124,9 +124,3 @@ Your job is to order the code fragments in the order in which the Python interpr
    add 2 and 5 to get 7
    =====
    run the square function, again, on input 7, returning the value 49
-   
-
-
-
-
- 
