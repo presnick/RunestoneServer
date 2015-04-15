@@ -10,7 +10,7 @@
 String Interpolation
 ====================
 
-Until now, we have created strings with variable content using the + operator to concatenate partial strings together. That works, but it's very hard for people to read or debug a code line that includes variable names and strings and complex expressions. Consider the following: 
+Until now, we have created strings with variable content using the + operator to concatenate partial strings together. That works, but it's very hard for people to read or debug any code line that includes variable names and strings and complex expressions. Consider the following: 
 
 .. activecode:: interpolation_1
 
