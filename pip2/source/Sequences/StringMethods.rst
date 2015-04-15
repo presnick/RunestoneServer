@@ -53,6 +53,7 @@ find        item                Returns the leftmost index where the substring i
 rfind       item                Returns the rightmost index where the substring item is found
 index       item                Like find except causes a runtime error if item is not found
 rindex      item                Like rfind except causes a runtime error if item is not found
+split       item                Splits a string into a list based on specified character where it will split string at
 ==========  ==============      ==================================================================
 
 You should experiment with these
