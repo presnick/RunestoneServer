@@ -39,7 +39,7 @@ list by using the ``list`` conversion function.
     print ks
 
     
-It is so common to iterate over the keys in a dictionary that you can
+It's so common to iterate over the keys in a dictionary that you can
 omit the ``keys`` method call in the ``for`` loop --- iterating over
 a dictionary implicitly iterates over its keys.
 
