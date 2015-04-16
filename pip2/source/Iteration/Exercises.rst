@@ -31,3 +31,13 @@ in one of the earlier exercises. But first see if you can generate the answer wi
 some of your code from the last question. The == operator compares two values to see if they are the same)
 
 .. actex:: ex_8_6
+
+4. These lists of words go together and make phrases. That is, get the user to print out the phrases.
+
+.. sourcecode:: python
+
+   lst1 = ["Hello", "You're", "What", "Eat"]
+   lst2 = ["there!", "leaving?", "time?", "where?"]
+   
+   for i in range len(lst1):
+      print lst[i]  + lst2[i]
