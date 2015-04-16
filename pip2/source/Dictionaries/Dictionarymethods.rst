@@ -26,7 +26,9 @@ get         key,alt             Returns the value associated with key; alt other
 
 The ``keys`` method returns what Python 3 calls a **view** of its underlying keys.  
 We can iterate over the view or turn the view into a 
-list by using the ``list`` conversion function.
+list by using the ``list`` conversion function.  However, it is important to note that calling these 
+dictionary method requires the inclusion of a pair of parenthesis- ''()'' at the end of the call.
+The format would look something like this:
 
 .. activecode:: chp12_dict6
     
