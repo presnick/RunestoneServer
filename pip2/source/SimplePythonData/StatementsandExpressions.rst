@@ -33,7 +33,7 @@ In this example ``len`` is a built-in Python function that returns the number
 of characters in a string. 
 
 The *evaluation of an expression* produces a value, which is why expressions
-can appear on the right hand side of assignment statements. A lilteral all by
+can appear on the right hand side of assignment statements. A literal all by
 itself is a simple expression, and so is a variable.  Evaluating a variable gives the value that the variable refers to.
 
 .. activecode:: ch02_14
