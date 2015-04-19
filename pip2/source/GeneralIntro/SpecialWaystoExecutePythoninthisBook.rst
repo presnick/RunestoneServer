@@ -47,7 +47,7 @@ all variables as they are created and modified.  In activecode, the source code 
 arrow points to the line that was just executed. Click on the "Show in Codelens" button to make the codelens window show up, and then click on the Forward button a few times to step through the execution.  
 
 Sometimes, we will present code examples explicitly in a codelens window, as below.
-When we do, think of it as an ecouragement to use the codelens features to step through the execution of the program.
+When we do, think of it as an encouragement to use the codelens features to step through the execution of the program.
 
 .. codelens:: firstexample
     :showoutput:
