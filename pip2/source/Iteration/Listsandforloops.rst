@@ -83,3 +83,23 @@ list (0, 1, 2, etc.), so that we can assign a new value to the position in the l
      print blist
 
 
+.. mchoicemf:: test_question9_16_1
+   :answer_a: [8,5,14,9,6]
+   :answer_b: [8,5,14,9,6,12]
+   :answer_c: [3,0,9,4,1,7,5]
+   :answer_d: Error, you cannot concatenate inside an append.
+   :correct: b
+   :feedback_a: 5 is added to each list[i] before the append is peformed.
+   :feedback_b: Yes, the for loop processes each list[i] of the list.  5 is added before list[i] is appended to blist.
+   :feedback_c: There are too many items in this list.  Only 5 append operations are performed.
+   :feedback_d: 5 is added to each list[i] before the append operation is performed.
+   
+   What is printed by the following statements?
+   
+   .. code-block:: python
+   
+     list= [3,0,9,4,1,7]
+     new_list=[]
+     for i in range(len(list)):
+        new_list.append(list[i]+5)
+     print new_list      
