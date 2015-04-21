@@ -46,7 +46,7 @@ On line 2, that returned value is assigned to the variable z.
 
 The split method actually takes an optional extra parameter. If no value is provided
 inside the parentheses, the split method chops up the list whenever it encounters
-and whitespace (a space, a tab, or a newline). But you can specifying a character
+a whitespace (a space, a tab, or a newline). But you can specifying a character
 or character string to split on. Try putting "s" inside the parentheses on line 2
 above, make a prediction about what the output will be, and then check it. Try
 some other things inside the parentheses.
