@@ -37,4 +37,19 @@ Note that ``alist[0]`` is the string ``"hello"``, which has length 5.
 
      alist = [3, 67, "cat", 3.14, False]
      print len(alist)
+    
+        
+.. mchoicemf:: test_question9_2_2 
+   :answer_a: 2
+   :answer_b: 3
+   :answer_c: 4
+   :answer_d: 5
+   :correct: b
+   :feedback_b: Yes, there are 3 items in this list.
+
+   What is printed by the following statements?
    
+   .. code-block:: python
+
+     L = [0.34, '6', 'SI106', 'Python', -2]
+     print len(L[1:-1])    
