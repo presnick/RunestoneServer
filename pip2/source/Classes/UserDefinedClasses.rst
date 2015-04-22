@@ -30,7 +30,7 @@ Thinking about our diagram above, we could draw a ``point`` object as shown here
 
 
 Some of the typical operations that one associates with points might be to ask
-the point for its x coordinate, ``getX``, or to ask for its y coordinate, ``getY``.  You may also
+the point for its x coordinate, ``getX``, or to ask for its y coordinate, ``getY``.  You would want these types of functions available to prevent accidental changes to these instance variables since doing so would allow you to view the values without accessing them directly.  You may also
 wish to calculate the distance of a point from the origin, or the distance of a point from another point,
 or find the midpoint between two points, or answer the question as to whether a point falls within a
 given rectangle or circle.  We'll shortly see how we can organize these
@@ -159,7 +159,7 @@ To get a clearer understanding of what happens when instantiating a new instance
 
     print(p is q)
     
-At Step 6 in the codelens execution, you can see that Point has been bound to an object representing the point class, but there are not yet any instances. The execution of line 9, ``p = Point()``, occurs at steps 7-9. First, at step 7, you can see that a blank instance of the class has been created, and is passed as the first (and only parameter) to the ``__init__`` method. That method's code is executed, with the variable self bound to that instance. At steps 8 and 9, two instance variables are filled in: x and y are both set to 0. Nothing is returned from the __init__ method, but the point object itself is returned from the call to ``Point()``. Thus, at step 10,  p is bound to the new point that was created and initialized.
+At Step 6 in the CodeLens execution, you can see that Point has been bound to an object representing the point class, but there are not yet any instances. The execution of line 9, ``p = Point()``, occurs at steps 7-9. First, at step 7, you can see that a blank instance of the class has been created, and is passed as the first (and only parameter) to the ``__init__`` method. That method's code is executed, with the variable self bound to that instance. At steps 8 and 9, two instance variables are filled in: x and y are both set to 0. Nothing is returned from the ``__init__`` method, but the point object itself is returned from the call to ``Point()``. Thus, at step 10,  p is bound to the new point that was created and initialized.
 
 Skipping ahead, by the time we get to Step 16, p and q are each bound to different points. Even though both have x and y instance variables set to 0, they are *different objects*. Thus ``p is q`` evaluates to False.
 
