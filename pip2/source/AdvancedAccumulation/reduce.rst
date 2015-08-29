@@ -70,8 +70,11 @@ All of the specific accumulations that you've seen before can be expressed compa
    # count them; len
    print reduce(lambda x, y: x +1, nums, 0)
    
+   
+   
    # add them up; sum
    print reduce(lambda x, y: x + y, nums)
+   #x refers to the result-so-far and y refers to the next element in the list
    
    # find the largest; max
    def greater(x, y):

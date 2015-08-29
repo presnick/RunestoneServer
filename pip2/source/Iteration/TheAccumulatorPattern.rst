@@ -8,7 +8,7 @@ such as the sum-so-far or the maximum-so-far. That way, at the end of the traver
 value, such as the sum total of all the items or the largest item.
 
 The anatomy of the accumulation pattern includes:
-   - **initializing** an "acccumulator" variable to an initial value (such as 0 if accumulating a sum)
+   - **initializing** an "accumulator" variable to an initial value (such as 0 if accumulating a sum)
    - **iterating** (e.g., traversing the items in a sequence)
    - **updating** the accumulator variable on each iteration (i.e., when processing each item in the sequence)
    
