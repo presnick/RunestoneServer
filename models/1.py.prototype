@@ -14,3 +14,6 @@ settings.janrain_domain = 'my-janrain-domain'
 
 # Enable captchas during registration
 settings.enable_captchas = True
+
+#set this to the LTI path
+settings.lti_uri = 'http://fulldomain/runestone/lti'
