@@ -81,7 +81,7 @@ def index():
     
     # Time to create / update / login the user
     if consumer is not None:
-        userinfo['username'] = "HACK" + ":" + user_id;
+        userinfo['username'] = "B" + ":" + user_id;
         # print db.auth_user.password.validate('1C5CHFA_enUS503US503')
         # pw = db.auth_user.password.validate('2C5CHFA_enUS503US503')[0];
         pw = db.auth_user.password.validate(str(uuid.uuid4()))[0];
