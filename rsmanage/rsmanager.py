@@ -411,10 +411,15 @@ def findProjectRoot():
 #
 
 @cli.command()
+@click.option("--test_mode", is_flag=True, help="test but don't update database")
 @pass_config
-def fill_practice_log_missings(config):
+def fill_practice_log_missings(config, test_mode):
     """Only for one-time use to fill out the missing values of the columns that we added to user_topic_practice_log table during the semester."""
     os.chdir(findProjectRoot())
+    print "test_mode", test_mode
+    userinfo = {}
+    userinfo['test_mode'] = test_mode if test_mode else click.confirm("Test mode?", default=True)
+    os.environ['RSM_USERINFO'] = json.dumps(userinfo)
 
     subprocess.call("python web2py.py -S runestone -M -R applications/runestone/rsmanage/fill_practice_log_missings.py", shell=True)
 
