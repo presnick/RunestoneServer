@@ -1,9 +1,7 @@
 import unittest
 import json
-import datetime
 from gluon.globals import Request, Session
 from gluon.tools import Auth
-from dateutil.parser import parse
 
 #     getGradeComments      24180 273.000    6281
 # add__or_update_assignment_question        14059 678.000    7232
@@ -87,7 +85,11 @@ class TestAdminEndpoints(unittest.TestCase):
 
 suite = unittest.TestSuite()
 suite.addTest(unittest.makeSuite(TestAdminEndpoints))
-unittest.TextTestRunner(verbosity=2).run(suite)
-
+res = unittest.TextTestRunner(verbosity=2).run(suite)
+if len(res.errors) == 0 and len(res.failures) == 0:
+    sys.exit(0)
+else:
+    print("nonzero errors exiting with 1", res.errors, res.failures)
+    sys.exit(1)
 
 

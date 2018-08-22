@@ -14,10 +14,10 @@ logger.setLevel(settings.log_level)
 
 response.headers['Access-Control-Allow-Origin'] = '*'
 
-EVENT_TABLE = {'mChoice':'mchoice_answers', 
-               'fillb':'fitb_answers', 
-               'dragNdrop':'dragndrop_answers', 
-               'clickableArea':'clickablearea_answers', 
+EVENT_TABLE = {'mChoice':'mchoice_answers',
+               'fillb':'fitb_answers',
+               'dragNdrop':'dragndrop_answers',
+               'clickableArea':'clickablearea_answers',
                'parsons':'parsons_answers',
                'codelens1':'codelens_answers',
                'shortanswer':'shortanswer_answers',
@@ -27,9 +27,10 @@ EVENT_TABLE = {'mChoice':'mchoice_answers',
                'clickablearea':'clickablearea_answers',
                'parsonsprob': 'parsons_answers' }
 
+
 def compareAndUpdateCookieData(sid):
     if request.cookies.has_key('ipuser') and request.cookies['ipuser'].value != sid:
-        db.useinfo(db.useinfo.sid == request.cookies['ipuser'].value).update(sid=sid)
+        db.useinfo.update_or_insert(db.useinfo.sid == request.cookies['ipuser'].value, sid=sid)
 
 def hsblog():
     setCookie = False
@@ -50,13 +51,15 @@ def hsblog():
     div_id = request.vars.div_id
     event = request.vars.event
     course = request.vars.course
-    ts = datetime.datetime.now()
+    # Get the current time, rounded to the nearest second -- this is how time time will be stored in the database.
+    ts = datetime.datetime.utcnow()
+    ts -= datetime.timedelta(microseconds=ts.microsecond)
     tt = request.vars.time
     if not tt:
         tt = 0
 
     try:
-        db.useinfo.insert(sid=sid,act=act,div_id=div_id,event=event,timestamp=ts,course_id=course)
+        db.useinfo.insert(sid=sid,act=act[0:512],div_id=div_id,event=event,timestamp=ts,course_id=course)
     except:
         logger.debug('failed to insert log record for {} in {} : {} {} {}'.format(sid, course, div_id, event, act))
 
@@ -77,6 +80,10 @@ def hsblog():
             logger.debug('correct {} incorrect {} skipped {} time {}'.format(request.vars.correct, request.vars.incorrect, request.vars.skipped, request.vars.time))
             logger.debug('Error: {}'.format(e.message))
 
+    # Produce a default result.
+    res = dict(log=True, timestamp=str(ts))
+
+    # Process this event.
     if event == 'mChoice' and auth.user:
         # # has user already submitted a correct answer for this question?
         # if db((db.mchoice_answers.sid == sid) &
@@ -140,7 +147,6 @@ def hsblog():
             sid=sid, answer=act, div_id=div_id, timestamp=ts, course_name=course)
 
     response.headers['content-type'] = 'application/json'
-    res = {'log':True}
     if setCookie:
         response.cookies['ipuser'] = sid
         response.cookies['ipuser']['expires'] = 24*3600*90
@@ -162,7 +168,7 @@ def runlog():    # Log errors and runs with code
     div_id = request.vars.div_id
     course = request.vars.course
     code = request.vars.code if request.vars.code else ""
-    ts = datetime.datetime.now()
+    ts = datetime.datetime.utcnow()
     error_info = request.vars.errinfo
     pre = request.vars.prefix if request.vars.prefix else ""
     post = request.vars.suffix if request.vars.suffix else ""
@@ -295,10 +301,15 @@ def savegrade():
 def getuser():
     response.headers['content-type'] = 'application/json'
 
-    if  auth.user:
-        res = {'email':auth.user.email,'nick':auth.user.username,'cohortId':auth.user.cohort_id}
-        session.timezoneoffset = request.vars.timezoneoffset
-        logger.debug("setting timezone offset in session %s", session.timezoneoffset)
+    if auth.user:
+        try:
+            res = {'email': auth.user.email, 'nick': auth.user.username,
+                   'cohortId': auth.user.cohort_id, 'donated': auth.user.donated,
+                   'isInstructor': verifyInstructorStatus(auth.user.course_name, auth.user.id)}
+            session.timezoneoffset = request.vars.timezoneoffset
+            logger.debug("setting timezone offset in session %s", session.timezoneoffset)
+        except:
+            res = dict(redirect=auth.settings.login_url)  # ?_next=....
     else:
         res = dict(redirect=auth.settings.login_url) #?_next=....
     logger.debug("returning login info: %s",res)
@@ -357,13 +368,13 @@ def updatelastpage():
                    last_page_chapter = lastPageChapter,
                    last_page_subchapter = lastPageSubchapter,
                    last_page_scroll_location = lastPageScrollLocation,
-                   last_page_accessed_on = datetime.datetime.now())
+                   last_page_accessed_on = datetime.datetime.utcnow())
         db.commit()
         db((db.user_sub_chapter_progress.user_id == auth.user.id) &
            (db.user_sub_chapter_progress.chapter_id == lastPageChapter) &
            (db.user_sub_chapter_progress.sub_chapter_id == lastPageSubchapter)).update(
                    status = completionFlag,
-                   end_date = datetime.datetime.now())
+                   end_date = datetime.datetime.utcnow())
         db.commit()
 
 def getCompletionStatus():
@@ -487,7 +498,7 @@ def _getStudentResults(question):
     tbl_name = EVENT_TABLE[qst.question_type]
     tbl = db[tbl_name]
 
-    res = db( (tbl.div_id == question) & 
+    res = db( (tbl.div_id == question) &
                 (tbl.course_name == cc.course_name) &
                 (tbl.timestamp >= cc.term_start_date)).select(tbl.sid, tbl.answer, orderby=tbl.sid)
 
@@ -525,7 +536,7 @@ def getaggregateresults():
     is_instructor = verifyInstructorStatus(course,auth.user.id)
     # Yes, these two things could be done as a join.  but this **may** be better for performance
     if course == 'thinkcspy' or course == 'pythonds':
-        start_date = datetime.datetime.now() - datetime.timedelta(days=90)
+        start_date = datetime.datetime.utcnow() - datetime.timedelta(days=90)
     else:
         start_date = db(db.courses.course_name == course).select(db.courses.term_start_date).first().term_start_date
     count = db.useinfo.id.count()
@@ -802,3 +813,26 @@ def preview_question():
             return json.dumps(ctext)
 
     return json.dumps(res)
+
+def save_donate():
+    if auth.user:
+        db(db.auth_user.id == auth.user.id).update(donated=True)
+
+def did_donate():
+    if auth.user:
+        d_status = db(db.auth_user.id == auth.user.id).select(db.auth_user.donated).first()
+
+        return json.dumps(dict(donate=d_status.donated))
+    return json.dumps(dict(donate=False))
+
+
+def get_datafile():
+    course = request.vars.course_id
+    acid = request.vars.acid
+    file_contents = db((db.source_code.acid == acid) & (db.source_code.course_id == course)).select(db.source_code.main_code).first()
+    if file_contents:
+        file_contents = file_contents.main_code
+    else:
+        file_contents = None
+
+    return json.dumps(dict(data=file_contents))
