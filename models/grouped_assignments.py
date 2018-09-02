@@ -8,16 +8,13 @@ class AssignmentGrade(object):
     def __init__(self, released, score, projected, assignment_score, assignment_id, assignment_name, grade_record, row):
         self.released = released
         self.score = score
-        self.projected = projected
-        try:
-            self.assignment_score = int(assignment_score)
-        except:
-            self.assignment_score = 0
+        self.projected = projected 
+        self.assignment_score = assignment_score
         self.assignment_id = assignment_id
         self.assignment_name = assignment_name
         self.grade_record = grade_record
         self.db_row = row
-
+        
     def points(self, projected = False, potential = False):
         # potential gives max points for the assignment
         # projected gives actual score if it's been released, else projected
@@ -33,14 +30,14 @@ class AssignmentGrade(object):
                 return 0
         else:
             return 0
-
+        
     def csv(self, row, type_name, assignment_names):
         # add values to row dictionary and field names to lists as needed
         name = type_name + '_' + self.assignment_name
         if name not in assignment_names:
             assignment_names.append(name)
-        row[name] = self.points()
-
+        row[name] = self.points()   
+        
 
 class AssignmentTypeGrade(object):
     """Grade of one user for a collection of assignments,"""
@@ -48,7 +45,7 @@ class AssignmentTypeGrade(object):
         self.assignments = []
         self.name = assignment_type.name
         self.grade_type = assignment_type.grade_type
-
+        
         try:
             self.weight = assignment_type.weight
         except:
@@ -64,12 +61,12 @@ class AssignmentTypeGrade(object):
         try:
             self.assignments_dropped = int(assignment_type.assignments_dropped)
         except:
-            self.assignments_dropped = 0
-
+            self.assignments_dropped = 0 
+    
         assignments = db((db.assignments.course == course.id)
-                         & (db.assignments.assignment_type == assignment_type.id)
+                         & (db.assignments.assignment_type == assignment_type.id)                      
                          ).select(orderby = db.assignments.name)
-
+        
         for row in assignments:
             # get or create the grade object for this user for this assignment row
             grade = db.grades((db.grades.assignment == row.id) & (db.grades.auth_user == user.id))
@@ -80,14 +77,14 @@ class AssignmentTypeGrade(object):
                                  projected = 0)
             grade = db.grades((db.grades.assignment == row.id) & (db.grades.auth_user == user.id))
             # add the AssignmentGrade to t
-            self.assignments.append(AssignmentGrade(row.released, grade.score, grade.projected, row.points, row.id, row.name, grade, row))
-
+            self.assignments.append(AssignmentGrade(row.released, grade.score, grade.projected, row.points, row.id, row.name, grade, row))            
+    
     def points(self, projected = False, potential = False):
         vals = [a.points(projected, potential) for a in self.assignments]
         vals.sort()
         # drop the self.assignments_dropped lowest values
         return sum(vals[self.assignments_dropped:])
-
+    
     def csv(self, row, type_names, assignment_names):
         # add values to row dictionary and field names to lists as needed
         if self.name not in type_names:
@@ -96,44 +93,32 @@ class AssignmentTypeGrade(object):
         for a in self.assignments:
             a.csv(row, self.name, assignment_names)
 
-
 class CourseGrade(object):
     def __init__(self, user, course, assignment_types):
         self.assignment_type_grades = [AssignmentTypeGrade(t, user, course) for t in assignment_types]
         self.student = user
         self.course = course
 
-
+        
     def points(self, projected = False, potential = False):
-        return sum([t.points(projected, potential) or 0 for t in self.assignment_type_grades])
-
-    def csv(self, type_names, assignment_names, as_of_timestamp=None):
+        return sum([t.points(projected, potential) for t in self.assignment_type_grades])
+    
+    def csv(self, type_names, assignment_names):
         # pass the row dictionary and fields_names into the csv method for the components, which will accumulate extra values and field names
         row = {}
         row['Lastname']= self.student.last_name
         row['Firstname']= self.student.first_name
         row['Email']= self.student.email
         row['Total']= self.points()
-        if 'NonPS Seconds' not in type_names:
-            type_names.append('NonPS Seconds')
-        row['NonPS Seconds'] = get_engagement_time(assignment=None,
-                                                   user=self.student,
-                                                   preclass=False,
-                                                   all_non_problem_sets=True,
-                                                   as_of_timestamp=as_of_timestamp)
-        if 'PS Seconds' not in type_names:
-            type_names.append('PS Seconds')
-        if 'Earliness' not in type_names:
-            type_names.append('Earliness')
-        row['PS Seconds'], row['Earliness'] = get_engagement_time(assignment=None,
-                                                                  user=self.student,
-                                                                  preclass=False,
-                                                                  all_problem_sets=True,
-                                                                  as_of_timestamp=as_of_timestamp)
+        if 'NonPS Hours' not in type_names:
+            type_names.append('NonPS Hours')
+        row['NonPS Hours'] = get_engagement_time(None, self.student, False, all_non_problem_sets = True, course_name = self.course.course_name)/3600.0
+        if 'PS Hours' not in type_names:
+            type_names.append('PS Hours')
+        row['PS Hours'] = get_engagement_time(None, self.student, False, all_problem_sets = True, course_name = self.course.course_name)/3600.0
         for t in self.assignment_type_grades:
             t.csv(row, type_names, assignment_names)
         return row
-
 
 db.define_table('assignment_types',
     Field('name', 'string'),
@@ -146,32 +131,45 @@ db.define_table('assignment_types',
     migrate='runestone_assignment_types.table',
     )
 
+existing_types = []
+type_query = db(db.assignment_types).select()
+for assign_type in type_query:
+    existing_types.append(assign_type.name)
+
+if 'summative' not in existing_types:
+    db.assignment_types.insert(name='summative')
+
+if 'formative' not in existing_types:
+    db.assignment_types.insert(name='formative')
+
+if 'external' not in existing_types:
+    db.assignment_types.insert(name='external')
+
+
+
 
 db.define_table('assignments',
     Field('course', db.courses),
-    Field('assignment_type', db.assignment_types,
-          requires=IS_EMPTY_OR(IS_IN_DB(db, 'assignment_types.id', '%(name)s'))), # DEPRECATED, every assignment can
-                                                                                  # include reading portion and
-                                                                                  # questions portion
+    Field('assignment_type', db.assignment_types, requires=IS_EMPTY_OR(IS_IN_DB(db, 'assignment_types.id', '%(name)s'))),
     Field('name', 'string'),
-    Field('points', 'integer'),  # max possible points on the assignment, cached sum of assignment_question points
-    Field('threshold_pct', 'float'), # threshold required to qualify for maximum points on the assignment; null means use actual points
+    Field('points', 'integer'),
+    Field('threshold', 'integer', default=1),
     Field('released', 'boolean'),
     Field('description', 'text'),
     Field('duedate','datetime'),
-    Field('visible','boolean'),
     format='%(name)s',
     migrate='runestone_assignments.table'
     )
 
 class score(object):
-    def __init__(self, acid=None, points=0, comment="", user=None):
+    def __init__(self, acid=None, points=0, max_points = 0, comment="", user=None):
         self.acid = acid
         self.user = user
         self.points = points
+        self.max_points = max_points
         if type(self.points) not in [float, int]:
             # would be nice to flag error here
-            self.points = 0
+            self.points = 0 
         self.comment = comment
 
     def truncated_acid(self):
@@ -203,126 +201,56 @@ class Session(object):
         self.assignment = assignment
 
 def get_deadline(assignment, user):
-    section = section_users(db.auth_user.id == user.id).select(db.sections.ALL).first()
-    q = db(db.deadlines.assignment == assignment.id)
-    if section:
-        q = q((db.deadlines.section == section.id) | (db.deadlines.section==None))
-    else:
-        q = q(db.deadlines.section==None)
-    dl = q.select(db.deadlines.ALL, orderby=db.deadlines.section).first()
-    if dl:
-        return dl.deadline  #a datetime object
-    else:
-        return None
+    return assignment.duedate
+    # old code for looking up in a separate deadlines table, per section
+    # section = section_users(db.auth_user.id == user.id).select(db.sections.ALL).first()
+    # q = db(db.deadlines.assignment == assignment.id)
+    # if section:
+    #     q = q((db.deadlines.section == section.id) | (db.deadlines.section==None))
+    # else:
+    #     q = q(db.deadlines.section==None)
+    # dl = q.select(db.deadlines.ALL, orderby=db.deadlines.section).first()
+    # if dl:
+    #     return dl.deadline  #a datetime object
+    # else:
+    #     return None
 
-
-def get_engagement_time(assignment, user, preclass=False, all_problem_sets=False, all_non_problem_sets=False,
-                        as_of_timestamp=None):
-    q = db(db.useinfo.sid == user.username)
+def get_engagement_time(assignment, user, preclass, all_problem_sets = False, all_non_problem_sets = False, course_name = None):
     if all_problem_sets:
-        # In order to get the deadline for each assignment, we join useinfo and questions.
-        q = q((db.useinfo.div_id.startswith('ps_')) &
-               (db.useinfo.div_id == db.questions.name) &
-               (db.assignment_questions.question_id == db.questions.id) &
-               (db.assignment_questions.assignment_id == db.assignments.id))
-
+        q =  db(db.useinfo.sid == user.username)(db.useinfo.div_id.contains('Assignments') | db.useinfo.div_id.startswith('ps'))
     elif all_non_problem_sets:
-        q = q(~(db.useinfo.div_id.contains('Assignments') |
-                db.useinfo.div_id.startswith('ps_')))
+        q =  db(db.useinfo.sid == user.username)(~(db.useinfo.div_id.contains('Assignments') | db.useinfo.div_id.startswith('ps')))
     else:
-        q = q(db.useinfo.div_id == db.problems.acid)(db.problems.assignment ==
-                                                      assignment.id)
+        # q =  db(db.useinfo.div_id == db.problems.acid)(db.problems.assignment == assignment.id)(db.useinfo.sid == user.username)
+        q = db(db.assignment_questions.assignment_id == assignment.id)
+        q = q(db.assignment_questions.question_id == db.questions.id)
+        q = q(db.questions.name == db.useinfo.div_id)
+        q = q(db.useinfo.sid == user.username)
         if preclass:
             dl = get_deadline(assignment, user)
             if dl:
-                q = q(db.useinfo.timestamp < dl)
-    if as_of_timestamp:
-        q = q(db.useinfo.timestamp < as_of_timestamp)
-
-    if all_problem_sets:
-        activities = q.select(db.useinfo.timestamp, db.assignments.duedate, db.assignments.id,
-                              orderby=db.useinfo.timestamp)
-        # We want to define a variable that measures how early each student works on their assignments. We suppose this
-        # measure as the inverse of a measurement of procrastination. For this purpose, we need to find the first, last,
-        # and all the timestamps that the student worked on each assignment.
-        first_last_timestamps = {}
-    else:
-        activities = q.select(db.useinfo.timestamp, orderby=db.useinfo.timestamp)
-
+                q = q(db.useinfo.timestamp < dl)       
+    if course_name:
+        q = q(db.useinfo.course_id == course_name)
+    activities = q.select(db.useinfo.timestamp, orderby=db.useinfo.timestamp)
     sessions = []
     THRESH = 300
     prev = None
     for activity in activities:
-        if all_problem_sets:
-            timestamp = activity.useinfo.timestamp
-        else:
-            timestamp = activity.timestamp
         if not prev:
             # first activity; start a session for it
-            sessions.append(Session(timestamp))
-        else:
-            if all_problem_sets:
-                prev_timestamp = prev.useinfo.timestamp
-            else:
-                prev_timestamp = prev.timestamp
-            if (timestamp - prev_timestamp).total_seconds() > THRESH:
-                # close previous session; set its end time be previous activity's time, plus THRESH seconds
-                sessions[-1].end = prev_timestamp + datetime.timedelta(seconds=THRESH)
-                # start a new session
-                sessions.append(Session(timestamp))
+            sessions.append(Session(activity.timestamp))            
+        elif (activity.timestamp - prev.timestamp).total_seconds() > THRESH:
+            # close previous session; set its end time be previous activity's time, plus 30 seconds
+            sessions[-1].end = prev.timestamp + datetime.timedelta(seconds=THRESH)
+            # start a new session
+            sessions.append(Session(activity.timestamp))
         prev = activity
-
-        if all_problem_sets:
-            deadline = activity.assignments.duedate
-            assignment_id = activity.assignments.id
-            if timestamp <= deadline:
-                # Use assignment id as key.
-                if assignment_id not in first_last_timestamps:
-                    first_last_timestamps[assignment_id] = {'first': timestamp,
-                                                            'last': timestamp,
-                                                            'visits': [timestamp],
-                                                            'deadline': deadline}
-                else:
-                    # We need to find the first, last, and all the timestamps timestamps that the student worked on
-                    # each assignment.
-                    first_last_timestamps[assignment_id]['visits'].append(timestamp)
-                    if timestamp < first_last_timestamps[assignment_id]['first']:
-                        first_last_timestamps[assignment_id]['first'] = timestamp
-                    if first_last_timestamps[assignment_id]['last'] < timestamp <= deadline:
-                        first_last_timestamps[assignment_id]['last'] = timestamp
     if prev:
-        if all_problem_sets:
-            prev_timestamp = prev.useinfo.timestamp
-        else:
-            prev_timestamp = prev.timestamp
         # close out last session
-        sessions[-1].end = prev_timestamp + datetime.timedelta(seconds=THRESH)
-
+        sessions[-1].end = prev.timestamp + datetime.timedelta(seconds=THRESH)
     total_time = sum([(s.end-s.start).total_seconds() for s in sessions])
-
-    if all_problem_sets:
-        for assignment_id, v in first_last_timestamps.items():
-            print assignment_id, v['first'], v['last'], v['deadline']
-
-    if all_problem_sets:
-        # We I define the variable earliness that measures how early each student works on their assignments. We suppose
-        # this measure as the inverse of a measurement of procrastination and we calculate it as the difference between
-        # the deadline and mean of all the timestamps before the deadline that they worked on the assignment.
-        # Add up over all assignments; student who misses an assignments gets no earliness for it.
-        earliness = 0
-        for v in first_last_timestamps.values():
-            average_delta = 0
-            for timestamp in v['visits']:
-                average_delta += v['deadline'] - timestamp
-            average_delta /= len(v['visits'])
-            earliness += average_delta.total_seconds()
-        # Finally, divide the earliness by the number of assignments, so that earliness does not depend on the number of
-        # submitted assignments.
-        earliness /= len(first_last_timestamps)
-        return total_time, earliness/float(3600)
-
     return total_time
-
 
 def assignment_get_use_scores(assignment, problem=None, user=None, section_id=None, preclass=True):
     scores = []
@@ -335,7 +263,7 @@ def assignment_get_use_scores(assignment, problem=None, user=None, section_id=No
         if preclass:
             dl = get_deadline(assignment, user)
             if dl:
-                q = q(db.useinfo.timestamp < dl)
+                q = q(db.useinfo.timestamp < dl)       
         attempted_problems = q.select(db.problems.acid)
         for problem in db(db.problems.assignment == assignment.id).select(db.problems.acid):
 #            if ".html" in problem.acid:
@@ -417,7 +345,7 @@ def get_all_times_and_activity_counts(course):
                 ret[nm+"_activities_pre_deadline"] = count(self.assignments[a], pre_deadline=True)
                 ret[nm+"_max_act"] = act_per_ass[a]
             return ret
-
+            
     students = db(db.auth_user.course_id == course.id).select(db.auth_user.registration_id, db.auth_user.username)
     all_user_data = {}
     for student in students:
@@ -470,8 +398,8 @@ def extract_last_grades(L, f):
 
 def assignment_get_scores(assignment, problem=None, user=None, section_id=None, preclass=True):
     assignment_type = db(db.assignment_types.id == assignment.assignment_type).select().first()
-    if assignment_type and assignment_type.grade_type == 'use':
-        return assignment_get_use_scores(assignment, problem, user, section_id, preclass)
+    # if assignment_type and assignment_type.grade_type == 'use':
+    #     return assignment_get_use_scores(assignment, problem, user, section_id, preclass)
     scores = []
     if problem and user:
         pass
@@ -518,10 +446,11 @@ def assignment_get_scores(assignment, problem=None, user=None, section_id=None, 
             orderby = db.assignment_questions.id
         )
         scores = [score(
-            points = g.score,
-            comment = g.comment,
-            acid = g.div_id,
-            user = auth.user.id
+            points = g.question_grades.score,
+            comment = g.question_grades.comment,
+            acid = g.question_grades.div_id,
+            user = auth.user.id,
+            max_points = g.assignment_questions.points
         ) for g in grades]
         #
         #
@@ -586,7 +515,7 @@ def assignment_set_grade(assignment, user):
     else:
         # they got the points they earned
         points = sum([p.points for p in assignment.scores(user=user)])
-
+        
     db.grades.insert(
         auth_user=user.id,
         assignment=assignment.id,
@@ -617,8 +546,6 @@ db.define_table('grades',
     Field('score', 'double'),
     Field('manual_total', 'boolean'),
     Field('projected', 'double'),
-    Field('lis_result_sourcedid', 'string'), # guid for the student x assignment cell in the Canvas gradebook
-    Field('lis_outcome_url', 'string'), #web service endpoint where you send signed xml messages to insert into gradebook; guid above will be one parameter you send in that xml; the actual grade and comment will be others
     migrate='runestone_grades.table',
     )
 
@@ -636,8 +563,7 @@ db.define_table('question_grades',
     Field('course_name',type='string', notnull=True),
     Field('div_id', type = 'string', notnull=True),
     Field('useinfo_id', db.useinfo), # the particular useinfo run that was graded
-    Field('deadline', 'datetime'),
     Field('score', type='double'),
-    Field('comment', type ='text'),
+    Field('comment', type = 'text'),
     migrate='runestone_question_grades.table',
     )
