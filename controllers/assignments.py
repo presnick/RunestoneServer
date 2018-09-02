@@ -616,6 +616,10 @@ def practice():
         session.flash = "Please Login"
         return redirect(URL('default', 'index'))
 
+
+    if not session.timezoneoffset:
+        session.timezoneoffset = 0
+
     (now,
      now_local,
      message1,
