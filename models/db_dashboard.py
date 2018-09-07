@@ -53,6 +53,7 @@ class ProblemMetrics(object):
         if row.sid in self.user_responses:
             self.user_responses[row.sid].add_response(choice, correct)
 
+    # this is where the donut chart data is created
     def user_response_stats(self):
         correct = 0
         correct_mult_attempts = 0
@@ -120,16 +121,24 @@ class CourseProblemMetrics(object):
         mcans = db((db.mchoice_answers.course_name==course_name) &
                    (db.mchoice_answers.div_id == db.questions.name) &
                    (db.questions.chapter == self.chapter.chapter_label)
-                    ).select()
+                    ).select(orderby=db.mchoice_answers.timestamp)
         rslogger.debug("Found {} exercises")
         fbans = db((db.fitb_answers.course_name==course_name) &
                    (db.fitb_answers.div_id == db.questions.name) &
                    (db.questions.chapter == self.chapter.chapter_label)
-                   ).select()
+                   ).select(orderby=db.fitb_answers.timestamp)
         psans = db((db.parsons_answers.course_name==course_name) &
                    (db.parsons_answers.div_id == db.questions.name) &
                    (db.questions.chapter == self.chapter.chapter_label)
-                   ).select()
+                   ).select(orderby=db.parsons_answers.timestamp)
+
+        # convert the numeric answer to letter answers to match the questions easier.
+        to_letter = dict(zip("0123456789", "ABCDEFGHIJ"))
+
+        for row in mcans:
+            mc = row['mchoice_answers']
+            mc.answer = to_letter.get(mc.answer, mc.answer)
+
         def add_problems(result_set,tbl):
             for srow in result_set:
                 row = srow[tbl]
@@ -175,7 +184,7 @@ class UserActivity(object):
         # returns page views for the last 7 days
         recentViewCount = 0
         current = len(self.rows) - 1
-        while current >= 0 and self.rows[current]['timestamp'] >= datetime.now() - timedelta(days=7):
+        while current >= 0 and self.rows[current]['timestamp'] >= datetime.utcnow() - timedelta(days=7):
             recentViewCount += 1
             current = current - 1
         return recentViewCount
@@ -339,15 +348,16 @@ class DashboardDataAnalyzer(object):
         #should probably be stored and only new data appended.
         self.course = db(db.courses.id == self.course_id).select().first()
         rslogger.debug("COURSE QUERY GOT %s", self.course)
-        self.users = db(db.auth_user.course_id == auth.user.course_id).select(db.auth_user.username, db.auth_user.first_name,db.auth_user.last_name)
+        self.users = db((db.auth_user.course_id == auth.user.course_id) & (db.auth_user.active == 'T') ).select(db.auth_user.username, db.auth_user.first_name,db.auth_user.last_name, db.auth_user.id)
+        self.instructors = db((db.course_instructor.course == auth.user.course_id)).select(db.course_instructor.instructor)
+        inums = [x.instructor for x in self.instructors]
+        self.users.exclude(lambda x: x.id in inums)
         self.logs = db((db.useinfo.course_id==self.course.course_name) & (db.useinfo.timestamp >= self.course.term_start_date)).select(db.useinfo.timestamp,db.useinfo.sid, db.useinfo.event,db.useinfo.act,db.useinfo.div_id, orderby=db.useinfo.timestamp)
         self.db_chapter_progress = db((db.user_sub_chapter_progress.user_id == db.auth_user.id) &
             (db.auth_user.course_id == auth.user.course_id) &  # todo: missing link from course_id to chapter/sub_chapter progress
-            (db.user_sub_chapter_progress.chapter_id == chapter.chapter_label)).select(db.auth_user.username,db.user_sub_chapter_progress.chapter_id,db.user_sub_chapter_progress.sub_chapter_id,db.user_sub_chapter_progress.status)
-
+            (db.user_sub_chapter_progress.chapter_id == chapter.chapter_label)).select(db.auth_user.username,db.user_sub_chapter_progress.chapter_id,db.user_sub_chapter_progress.sub_chapter_id,db.user_sub_chapter_progress.status,db.auth_user.id)
+        self.db_chapter_progress.exclude(lambda x: x.auth_user.id in inums)
         self.db_sub_chapters = db((db.sub_chapters.chapter_id == chapter.id)).select(db.sub_chapters.ALL,orderby=db.sub_chapters.id)
-        #self.divs = db(db.div_ids).select(db.div_ids.div_id)
-        #print self.divs
         self.problem_metrics = CourseProblemMetrics(self.course_id, self.users, chapter)
         rslogger.debug("About to call update_metrics")
         self.problem_metrics.update_metrics(self.course.course_name)

@@ -1,11 +1,20 @@
 import datetime
 import logging
 from math import ceil
+
 from outcome_request import OutcomeRequest
+
+# When testing, the ``settings`` object isn't defined. Import it in this case.
+try:
+    logger
+except:
+    execfile('applications/runestone/models/0.py', globals())
+logger = logging.getLogger(settings.logger)
+logger.setLevel(settings.log_level)
 
 def _profile(start, msg):
     delta = datetime.datetime.now() - start
-    print "{}: {}.{}".format(msg, delta.seconds, delta.microseconds)
+    print("{}: {}.{}".format(msg, delta.seconds, delta.microseconds))
 
 
 def _score_from_pct_correct(pct_correct, points, autograde):
@@ -289,7 +298,7 @@ def _autograde_one_q(course_name, sid, question_name, points, question_type,
             results = _scorable_codelens_answers(course_name, sid, question_name, points, deadline, practice_start_time,
                                                  db=db, now=now)
             scoring_fn = _score_one_codelens
-    elif question_type in ['video', 'showeval']:
+    elif question_type in ['video', 'showeval', 'youtube']:
         # question_name does not help us
         results = _scorable_useinfos(course_name, sid, question_name, points, deadline, question_type='video',
                                      practice_start_time=practice_start_time, db=db, now=now)
@@ -421,6 +430,7 @@ def _get_students(course_id, sid = None, db=None):
                           ).select(db.auth_user.username, db.auth_user.id)
     return student_rows
 
+
 def send_lti_grade(assignment, student, lti_record, db):
     # get total points for assignment, so can compute percentage to send to gradebook via LTI
 
@@ -433,29 +443,26 @@ def send_lti_grade(assignment, student, lti_record, db):
         # send it back to the LMS
         # have to send a percentage of the max score, rather than total points
         pct = grade.score / float(points) if points else 0.0
-        # print "score", score, points, pct
+        # logger.debug("score", score, points, pct)
         request = OutcomeRequest({"consumer_key": lti_record.consumer,
                                   "consumer_secret": lti_record.secret,
                                   "lis_outcome_service_url": grade.lis_outcome_url,
                                   "lis_result_sourcedid": grade.lis_result_sourcedid})
         resp = request.post_replace_result(pct)
-        # print resp
+        # logger.debug(resp)
         return pct
     elif grade and grade.lis_result_sourcedid and grade.lis_outcome_url:
-        print "would have sent", grade.score / float(points) if points else 0.0
+        logger.debug("would have sent", grade.score / float(points) if points else 0.0)
     elif grade:
-        print "nowhere to send", student.id
+        logger.debug("nowhere to send", student.id)
     else:
-        print "nothing to send", student.id
+        logger.debug("nothing to send", student.id)
 
     return "No grade sent"
 
-def send_lti_grades(assignment, course_id, db, settings, oauth_consumer_key):
-    global logger
-    logger = logging.getLogger(settings.logger)
-    logger.setLevel(settings.log_level)
 
-    print("sending lti grades")
+def send_lti_grades(assignment, course_id, db, settings, oauth_consumer_key):
+    logger.debug("sending lti grades")
     if oauth_consumer_key:
         lti_record = db(db.lti_keys.consumer == oauth_consumer_key).select().first()
     else:
@@ -464,13 +471,10 @@ def send_lti_grades(assignment, course_id, db, settings, oauth_consumer_key):
     student_rows = _get_students(course_id, db=db)
     for student in student_rows:
         send_lti_grade(assignment, student, lti_record, db)
-    print("done sending lti grades")
+    logger.debug("done sending lti grades")
+
 
 def do_calculate_totals(assignment, course_id, course_name, sid, db, settings):
-    global logger
-    logger = logging.getLogger(settings.logger)
-    logger.setLevel(settings.log_level)
-
     student_rows = _get_students(course_id, sid, db)
 
     results = {'success':True}
@@ -493,10 +497,6 @@ def do_calculate_totals(assignment, course_id, course_name, sid, db, settings):
 
 
 def do_autograde(assignment, course_id, course_name, sid, question_name, enforce_deadline, timezoneoffset, db, settings):
-    global logger
-    logger = logging.getLogger(settings.logger)
-    logger.setLevel(settings.log_level)
-
     start = datetime.datetime.now()
     if enforce_deadline == 'true':
         # get the deadline associated with the assignment
@@ -540,10 +540,10 @@ def do_autograde(assignment, course_id, course_name, sid, question_name, enforce
     count = 0
     # _profile(start, "after readings fetched")
     for (name, chapter, subchapter, points, ar, ag, wtg) in readings:
-        print "\nGrading all students for {}/{}".format(chapter, subchapter)
+        print("\nGrading all students for {}/{}".format(chapter, subchapter))
         count += 1
         for s in sids:
-            print ".",
+            print("."),
             score = 0
             rows = db((db.questions.chapter == chapter) &
                       (db.questions.subchapter == subchapter) &
@@ -614,11 +614,7 @@ def _change_e_factor(flashcard, q):
 
 
 def do_check_answer(sid, course_name, qid, username, q, db, settings, now, tz_delta):
-    global logger
-    logger = logging.getLogger(settings.logger)
-    logger.setLevel(settings.log_level)
-
-    now_local = now - tz_delta
+    now_local = now - datetime.timedelta(hours=tz_delta)
     lastQuestion = db(db.questions.id == int(qid)).select().first()
     chapter_label, sub_chapter_label = lastQuestion.topic.split('/')
 
@@ -628,46 +624,48 @@ def do_check_answer(sid, course_name, qid, username, q, db, settings, now, tz_de
                    (db.user_topic_practice.sub_chapter_label == sub_chapter_label) &
                    (db.user_topic_practice.question_name == lastQuestion.name)).select().first()
 
-    # We need to make sure that the request was a valid request, i.e., the flashcard was supposed to be asked at this time.
-    if (now_local.date() - flashcard.last_completed.date()).days >= flashcard.i_interval:
-        # Retrieve all the falshcards created for this user in the current course and order them by their order of creation.
-        flashcards = db((db.user_topic_practice.course_name == course_name) & \
-                        (db.user_topic_practice.user_id == sid)).select()
-        # Select only those where enough time has passed since last presentation.
-        presentable_flashcards = [f for f in flashcards if
-                                  (now_local.date() - f.last_completed.date()).days >= f.i_interval]
+    # Retrieve all the falshcards created for this user in the current course and order them by their order of creation.
+    flashcards = db((db.user_topic_practice.course_name == course_name) &
+                    (db.user_topic_practice.user_id == sid)).select()
+    # Select only those where enough time has passed since last presentation.
+    presentable_flashcards = [f for f in flashcards if now_local.date() >= flashcard.next_eligible_date]
 
-        if q:
-            # User clicked one of the self-evaluated answer buttons.
-            q = int(q)
-            trials_num = 1
-        else:
-            # Compute q using the auto grader
-            autograde = 'pct_correct'
-            if lastQuestion.autograde is not None:
-                autograde = lastQuestion.autograde
-            q, trials_num = _autograde_one_q(course_name, username, lastQuestion.name, 100,
-                                             lastQuestion.question_type, None, autograde, 'last_answer', False,
-                                             flashcard.last_presented + tz_delta, db=db, now=now)
-        flashcard = _change_e_factor(flashcard, q)
-        flashcard = _get_next_i_interval(flashcard, q)
-        flashcard.last_completed = now_local
-        flashcard.update_record()
+    if q:
+        # User clicked one of the self-evaluated answer buttons.
+        q = int(q)
+        trials_num = 1
+    else:
+        # Compute q using the auto grader
+        autograde = 'pct_correct'
+        if lastQuestion.autograde is not None:
+            autograde = lastQuestion.autograde
+        q, trials_num = _autograde_one_q(course_name, username, lastQuestion.name, 100,
+                                         lastQuestion.question_type, None, autograde, 'last_answer', False,
+                                         flashcard.last_presented, db=db, now=now)
+    flashcard = _change_e_factor(flashcard, q)
+    flashcard = _get_next_i_interval(flashcard, q)
+    flashcard.next_eligible_date = (now_local + datetime.timedelta(days=flashcard.i_interval)).date()
+    flashcard.last_completed = now
+    flashcard.tz_offset = tz_delta
+    flashcard.q = q
+    flashcard.update_record()
 
-        db.user_topic_practice_log.insert(
-            user_id=sid,
-            course_name=course_name,
-            chapter_label=flashcard.chapter_label,
-            sub_chapter_label=flashcard.sub_chapter_label,
-            question_name=flashcard.question_name,
-            i_interval=flashcard.i_interval,
-            e_factor=flashcard.e_factor,
-            q=q,
-            trials_num=trials_num,
-            available_flashcards=len(presentable_flashcards),
-            start_practice=flashcard.last_presented,
-            end_practice=now_local,
-        )
+    db.user_topic_practice_log.insert(
+        user_id=sid,
+        course_name=course_name,
+        chapter_label=flashcard.chapter_label,
+        sub_chapter_label=flashcard.sub_chapter_label,
+        question_name=flashcard.question_name,
+        i_interval=flashcard.i_interval,
+        next_eligible_date=flashcard.next_eligible_date,
+        e_factor=flashcard.e_factor,
+        q=q,
+        trials_num=trials_num,
+        available_flashcards=len(presentable_flashcards),
+        start_practice=flashcard.last_presented,
+        end_practice=now,
+    )
+    db.commit()
 
 
 def _score_practice_quality(practice_start_time, course_name, sid, points, score, trials_count, db, now):
@@ -679,6 +677,9 @@ def _score_practice_quality(practice_start_time, course_name, sid, points, score
         .select()
     practice_duration = (now - practice_start_time).seconds / 60
     practice_score = 0
+    print("len(page_visits):", len(page_visits))
+    print("trials_count:", trials_count)
+    print("practice_duration:", practice_duration)
     if score == points:
         if len(page_visits) <= 1 and trials_count <= 1 and practice_duration <= 2:
             practice_score = 5
@@ -694,10 +695,6 @@ def _score_practice_quality(practice_start_time, course_name, sid, points, score
 
 
 def do_fill_user_topic_practice_log_missings(db, settings, testing_mode=None):
-    global logger
-    logger = logging.getLogger(settings.logger)
-    logger.setLevel(settings.log_level)
-
     # Recreate the user_topic_practice creation time for existing records, based on first time it was actually
     # practiced.
     flashcards = db(db.user_topic_practice.id > 0).select()
