@@ -484,7 +484,8 @@ def do_calculate_totals(assignment, course_id, course_name, sid, db, settings):
     return results
 
 
-def do_autograde(assignment, course_id, course_name, sid, question_name, enforce_deadline, timezoneoffset, db, settings):
+def do_autograde(assignment, course_id, course_name, sid, question_name, enforce_deadline, timezoneoffset,
+                 db, settings):
     start = datetime.datetime.now()
     if enforce_deadline == 'true':
         # get the deadline associated with the assignment
@@ -493,7 +494,7 @@ def do_autograde(assignment, course_id, course_name, sid, question_name, enforce
         deadline = None
 
     if timezoneoffset and deadline:
-        deadline = deadline + datetime.timedelta(hours=int(timezoneoffset))
+        deadline = deadline + datetime.timedelta(hours=float(timezoneoffset))
         logger.debug("ASSIGNMENT DEADLINE OFFSET %s",deadline)
 
     student_rows = _get_students(course_id, sid, db)
@@ -601,8 +602,8 @@ def _change_e_factor(flashcard, q):
     return flashcard
 
 
-def do_check_answer(sid, course_name, qid, username, q, db, settings, now, tz_delta):
-    now_local = now - tz_delta
+def do_check_answer(sid, course_name, qid, username, q, db, settings, now, timezoneoffset):
+    now_local = now - datetime.timedelta(hours=timezoneoffset)
     lastQuestion = db(db.questions.id == int(qid)).select().first()
     chapter_label, sub_chapter_label = lastQuestion.topic.split('/')
 
@@ -612,46 +613,48 @@ def do_check_answer(sid, course_name, qid, username, q, db, settings, now, tz_de
                    (db.user_topic_practice.sub_chapter_label == sub_chapter_label) &
                    (db.user_topic_practice.question_name == lastQuestion.name)).select().first()
 
-    # We need to make sure that the request was a valid request, i.e., the flashcard was supposed to be asked at this time.
-    if (now_local.date() - flashcard.last_completed.date()).days >= flashcard.i_interval:
-        # Retrieve all the falshcards created for this user in the current course and order them by their order of creation.
-        flashcards = db((db.user_topic_practice.course_name == course_name) & \
-                        (db.user_topic_practice.user_id == sid)).select()
-        # Select only those where enough time has passed since last presentation.
-        presentable_flashcards = [f for f in flashcards if
-                                  (now_local.date() - f.last_completed.date()).days >= f.i_interval]
+    # Retrieve all the falshcards created for this user in the current course and order them by their order of creation.
+    flashcards = db((db.user_topic_practice.course_name == course_name) &
+                    (db.user_topic_practice.user_id == sid)).select()
+    # Select only those where enough time has passed since last presentation.
+    presentable_flashcards = [f for f in flashcards if now_local.date() >= flashcard.next_eligible_date]
 
-        if q:
-            # User clicked one of the self-evaluated answer buttons.
-            q = int(q)
-            trials_num = 1
-        else:
-            # Compute q using the auto grader
-            autograde = 'pct_correct'
-            if lastQuestion.autograde is not None:
-                autograde = lastQuestion.autograde
-            q, trials_num = _autograde_one_q(course_name, username, lastQuestion.name, 100,
-                                             lastQuestion.question_type, None, autograde, 'last_answer', False,
-                                             flashcard.last_presented + tz_delta, db=db, now=now)
-        flashcard = _change_e_factor(flashcard, q)
-        flashcard = _get_next_i_interval(flashcard, q)
-        flashcard.last_completed = now_local
-        flashcard.update_record()
+    if q:
+        # User clicked one of the self-evaluated answer buttons.
+        q = int(q)
+        trials_num = 1
+    else:
+        # Compute q using the auto grader
+        autograde = 'pct_correct'
+        if lastQuestion.autograde is not None:
+            autograde = lastQuestion.autograde
+        q, trials_num = _autograde_one_q(course_name, username, lastQuestion.name, 100,
+                                         lastQuestion.question_type, None, autograde, 'last_answer', False,
+                                         flashcard.last_presented, db=db, now=now)
+    flashcard = _change_e_factor(flashcard, q)
+    flashcard = _get_next_i_interval(flashcard, q)
+    flashcard.next_eligible_date = (now_local + datetime.timedelta(days=flashcard.i_interval)).date()
+    flashcard.last_completed = now
+    flashcard.timezoneoffset = timezoneoffset
+    flashcard.q = q
+    flashcard.update_record()
 
-        db.user_topic_practice_log.insert(
-            user_id=sid,
-            course_name=course_name,
-            chapter_label=flashcard.chapter_label,
-            sub_chapter_label=flashcard.sub_chapter_label,
-            question_name=flashcard.question_name,
-            i_interval=flashcard.i_interval,
-            e_factor=flashcard.e_factor,
-            q=q,
-            trials_num=trials_num,
-            available_flashcards=len(presentable_flashcards),
-            start_practice=flashcard.last_presented,
-            end_practice=now_local,
-        )
+    db.user_topic_practice_log.insert(
+        user_id=sid,
+        course_name=course_name,
+        chapter_label=flashcard.chapter_label,
+        sub_chapter_label=flashcard.sub_chapter_label,
+        question_name=flashcard.question_name,
+        i_interval=flashcard.i_interval,
+        next_eligible_date=flashcard.next_eligible_date,
+        e_factor=flashcard.e_factor,
+        q=q,
+        trials_num=trials_num,
+        available_flashcards=len(presentable_flashcards),
+        start_practice=flashcard.last_presented,
+        end_practice=now,
+        timezoneoffset=timezoneoffset
+    )
     db.commit()
 
 
