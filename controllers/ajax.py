@@ -1,13 +1,15 @@
 import json
 import datetime
 import logging
-import time
+import subprocess
 import uuid
 from collections import Counter
 from diff_match_patch import *
-import os, sys
+import os
+import sys
 from io import open
 from lxml import html
+import bleach
 
 logger = logging.getLogger(settings.logger)
 logger.setLevel(settings.log_level)
@@ -99,8 +101,8 @@ def hsblog():
         #       (db.fitb_answers.div_id == div_id) &
         #       (db.fitb_answers.course_name == auth.user.course_name) &
         #       (db.fitb_answers.correct == 'T')).count() == 0:
-            answer = request.vars.answer
-            correct = request.vars.correct
+            answer = bleach.clean(request.vars.answer)
+            correct = bleach.clean(request.vars.correct)
             db.fitb_answers.insert(sid=sid, timestamp=ts, div_id=div_id, answer=answer, correct=correct, course_name=course)
 
     elif event == "dragNdrop" and auth.user:
@@ -174,34 +176,62 @@ def runlog():    # Log errors and runs with code
     post = request.vars.suffix if request.vars.suffix else ""
     if error_info != 'success':
         event = 'ac_error'
-        act = error_info
+        act = str(error_info)[:512]
     else:
         act = 'run'
         if request.vars.event:
             event = request.vars.event
         else:
             event = 'activecode'
-    try:
-        db.useinfo.insert(sid=sid, act=act, div_id=div_id, event=event, timestamp=ts, course_id=course)
-    except Exception as e:
-        logger.debug("probable Too Long problem trying to insert sid={} act={} div_id={} event={} timestamp={} course_id={}".format(sid, act, div_id, event, ts, course))
+    num_tries = 3
+    done = False
+    while num_tries > 0 and not done:
+        try:
+            db.useinfo.insert(sid=sid, act=act, div_id=div_id, event=event, timestamp=ts, course_id=course)
+            done = True
+        except Exception as e:
+            logger.error("probable Too Long problem trying to insert sid={} act={} div_id={} event={} timestamp={} course_id={}".format(sid, act, div_id, event, ts, course))
+            num_tries -= 1
+    if num_tries == 0:
+        raise Exception("Runlog Failed to insert into useinfo")
 
-    dbid = db.acerror_log.insert(sid=sid,
-                                 div_id=div_id,
-                                 timestamp=ts,
-                                 course_id=course,
-                                 code=pre+code+post,
-                                 emessage=error_info)
+    num_tries = 3
+    done = False
+    while num_tries > 0 and not done:
+        try:
+            dbid = db.acerror_log.insert(sid=sid,
+                                        div_id=div_id,
+                                        timestamp=ts,
+                                        course_id=course,
+                                        code=pre+code+post,
+                                        emessage=error_info)
+            done = True
+        except:
+            logger.error("INSERT into acerror_log FAILED retrying")
+            num_tries -= 1
+    if num_tries == 0:
+        raise Exception("Runlog Failed to insert into acerror_log")
+
     #lintAfterSave(dbid, code, div_id, sid)
     if auth.user:
         if 'to_save' in request.vars and (request.vars.to_save == "True" or request.vars.to_save == "true"):
-            db.code.insert(sid=sid,
-                acid=div_id,
-                code=code,
-                emessage=error_info,
-                timestamp=ts,
-                course_id=auth.user.course_id,
-                language=request.vars.lang)
+            num_tries = 3
+            done = False
+            while num_tries > 0 and not done:
+                try:
+                    db.code.insert(sid=sid,
+                        acid=div_id,
+                        code=code,
+                        emessage=error_info,
+                        timestamp=ts,
+                        course_id=auth.user.course_id,
+                        language=request.vars.lang)
+                    done = True
+                except:
+                    num_tries -= 1
+                    logger.error("INSERT into code FAILED retrying")
+            if num_tries == 0:
+                raise Exception("Runlog Failed to insert into code")
 
     response.headers['content-type'] = 'application/json'
     res = {'log':True}
@@ -307,17 +337,17 @@ def getuser():
                    'cohortId': auth.user.cohort_id, 'donated': auth.user.donated,
                    'isInstructor': verifyInstructorStatus(auth.user.course_name, auth.user.id)}
             session.timezoneoffset = request.vars.timezoneoffset
-            logger.debug("setting timezone offset in session %s", session.timezoneoffset)
+            logger.debug("setting timezone offset in session %s hours" % session.timezoneoffset)
         except:
             res = dict(redirect=auth.settings.login_url)  # ?_next=....
     else:
         res = dict(redirect=auth.settings.login_url) #?_next=....
-    logger.debug("returning login info: %s",res)
+    logger.debug("returning login info: %s" % res)
     return json.dumps([res])
 
 def set_tz_offset():
     session.timezoneoffset = request.vars.timezoneoffset
-    logger.debug("setting timezone offset in session %s", session.timezoneoffset)
+    logger.debug("setting timezone offset in session %s hours" % session.timezoneoffset)
     return "done"
 
 
@@ -349,8 +379,19 @@ def getnumusers():
     res = {'numusers':numusers}
     return json.dumps([res])
 
+
+# I was not sure if it's okay to import it from `assignmnets.py`.
+# Only questions that are marked for practice are eligible for the spaced practice.
+def _get_qualified_questions(base_course, chapter_label, sub_chapter_label):
+    return db((db.questions.base_course == base_course) &
+              ((db.questions.topic == "{}/{}".format(chapter_label, sub_chapter_label)) |
+               ((db.questions.chapter == chapter_label) &
+                (db.questions.topic == None) &
+                (db.questions.subchapter == sub_chapter_label))) &
+              (db.questions.practice == True)).select()
+
 #
-#  Ajax Handlers to update and retreive the last position of the user in the course
+#  Ajax Handlers to update and retrieve the last position of the user in the course
 #
 def updatelastpage():
     lastPageUrl = request.vars.lastPageUrl
@@ -362,20 +403,78 @@ def updatelastpage():
     lastPageChapter = lastPageUrl.split("/")[-2]
     lastPageSubchapter = ".".join(lastPageUrl.split("/")[-1].split(".")[:-1])
     if auth.user:
-        db((db.user_state.user_id == auth.user.id) &
-                 (db.user_state.course_id == course)).update(
-                   last_page_url = lastPageUrl,
-                   last_page_chapter = lastPageChapter,
-                   last_page_subchapter = lastPageSubchapter,
-                   last_page_scroll_location = lastPageScrollLocation,
-                   last_page_accessed_on = datetime.datetime.utcnow())
-        db.commit()
-        db((db.user_sub_chapter_progress.user_id == auth.user.id) &
-           (db.user_sub_chapter_progress.chapter_id == lastPageChapter) &
-           (db.user_sub_chapter_progress.sub_chapter_id == lastPageSubchapter)).update(
-                   status = completionFlag,
-                   end_date = datetime.datetime.utcnow())
-        db.commit()
+        done = False
+        num_tries = 3
+        while not done and num_tries > 0:
+            try:
+                db((db.user_state.user_id == auth.user.id) &
+                        (db.user_state.course_id == course)).update(
+                        last_page_url=lastPageUrl,
+                        last_page_chapter=lastPageChapter,
+                        last_page_subchapter=lastPageSubchapter,
+                        last_page_scroll_location=lastPageScrollLocation,
+                        last_page_accessed_on=datetime.datetime.utcnow())
+                done = True
+            except:
+                num_tries -= 1
+        if num_tries == 0:
+            raise Exception("Failed to save the user state in update_last_page")
+
+        done = False
+        num_tries = 3
+        while not done and num_tries > 0:
+            try:
+                db((db.user_sub_chapter_progress.user_id == auth.user.id) &
+                (db.user_sub_chapter_progress.chapter_id == lastPageChapter) &
+                (db.user_sub_chapter_progress.sub_chapter_id == lastPageSubchapter)).update(
+                        status=completionFlag,
+                        end_date=datetime.datetime.utcnow())
+                done = True
+            except:
+                num_tries -= 1
+        if num_tries == 0:
+            raise Exception("Failed to save sub chapter progress in update_last_page")
+
+        practice_settings = db(db.course_practice.course_name == auth.user.course_name)
+        if (practice_settings.count() != 0 and
+            practice_settings.select().first().flashcard_creation_method == 0):
+            # Since each authenticated user has only one active course, we retrieve the course this way.
+            course = db(db.courses.id == auth.user.course_id).select().first()
+
+            # We only retrieve questions to be used in flashcards if they are marked for practice purpose.
+            questions = _get_qualified_questions(course.base_course,
+                                                 lastPageChapter,
+                                                 lastPageSubchapter)
+            if len(questions) > 0:
+                now = datetime.datetime.utcnow()
+                now_local = now - datetime.timedelta(hours=float(session.timezoneoffset))
+                existing_flashcards = db((db.user_topic_practice.user_id == auth.user.id) &
+                                         (db.user_topic_practice.course_name == auth.user.course_name) &
+                                         (db.user_topic_practice.chapter_label == lastPageChapter) &
+                                         (db.user_topic_practice.sub_chapter_label == lastPageSubchapter) &
+                                         (db.user_topic_practice.question_name == questions[0].name)
+                                         )
+                # There is at least one qualified question in this subchapter, so insert a flashcard for the subchapter.
+                if completionFlag == '1' and existing_flashcards.isempty():
+                    db.user_topic_practice.insert(
+                        user_id=auth.user.id,
+                        course_name=auth.user.course_name,
+                        chapter_label=lastPageChapter,
+                        sub_chapter_label=lastPageSubchapter,
+                        question_name=questions[0].name,
+                        # Treat it as if the first eligible question is the last one asked.
+                        i_interval=0,
+                        e_factor=2.5,
+                        next_eligible_date=now_local.date(),
+                        # add as if yesterday, so can practice right away
+                        last_presented=now - datetime.timedelta(1),
+                        last_completed=now - datetime.timedelta(1),
+                        creation_time=now,
+                        timezoneoffset=float(session.timezoneoffset) if 'timezoneoffset' in session else 0
+                    )
+                if completionFlag == '0' and not existing_flashcards.isempty():
+                    existing_flashcards.delete()
+
 
 def getCompletionStatus():
     if auth.user:
@@ -390,7 +489,8 @@ def getCompletionStatus():
             for row in result:
                 res = {'completionStatus': row.status}
                 rowarray_list.append(res)
-                #question: since the javascript in user-highlights.js is going to look only at the first row, shouldn't we be returning just the *last* status? Or is there no history of status kept anyway?
+                #question: since the javascript in user-highlights.js is going to look only at the first row, shouldn't
+                # we be returning just the *last* status? Or is there no history of status kept anyway?
             return json.dumps(rowarray_list)
         else:
             # haven't seen this Chapter/Subchapter before
@@ -595,10 +695,14 @@ def getpollresults():
 
     response.headers['content-type'] = 'application/json'
 
+
     query = '''select act from useinfo
-               where event = 'poll' and div_id = '%s' and course_id = '%s'
-               ''' % (div_id, course)
+    join (select sid,  max(id) mid
+        from useinfo where event='poll' and div_id = '{}' and course_id = '{}' group by sid) as T
+        on id = T.mid'''.format(div_id, course)
+
     rows = db.executesql(query)
+
 
     result_list = []
     for row in rows:
@@ -608,6 +712,10 @@ def getpollresults():
     # maps option : count
     opt_counts = Counter(result_list)
 
+    if result_list:
+        for i in range(max(result_list)):
+            if i not in opt_counts:
+                opt_counts[i] = 0
     # opt_list holds the option numbers from smallest to largest
     # count_list[i] holds the count of responses that chose option i
     opt_list = sorted(opt_counts.keys())
@@ -615,7 +723,18 @@ def getpollresults():
     for i in opt_list:
         count_list.append(opt_counts[i])
 
-    return json.dumps([len(result_list), opt_list, count_list, div_id])
+    user_res = None
+    if auth.user:
+        user_res = db((db.useinfo.sid == auth.user.username) &
+            (db.useinfo.course_id == course) &
+            (db.useinfo.div_id == div_id)).select(db.useinfo.act, orderby=~db.useinfo.id).first()
+
+    if user_res:
+        my_vote = user_res.act
+    else:
+        my_vote = -1
+
+    return json.dumps([len(result_list), opt_list, count_list, div_id, my_vote])
 
 
 def gettop10Answers():
@@ -665,6 +784,7 @@ def getSphinxBuildStatus():
         results['traceback'] = 'Sorry, no more info'
     return json.dumps(results)
 
+
 def getassignmentgrade():
     response.headers['content-type'] = 'application/json'
     if not auth.user:
@@ -709,7 +829,6 @@ def getassignmentgrade():
             ret['comment'] = result.comment
 
     return json.dumps([ret])
-
 
 
 def getAssessResults():
@@ -771,6 +890,7 @@ def getAssessResults():
         res = {'answer': row.answer, 'timestamp': str(row.timestamp)}
         return json.dumps(res)
 
+
 def checkTimedReset():
     if auth.user:
         user = auth.user.username
@@ -789,14 +909,34 @@ def checkTimedReset():
     else:
         return json.dumps({"canReset":True})
 
-def preview_question():
-    code = json.loads(request.vars.code)
-    with open("applications/runestone/build/preview/_sources/index.rst", "w", encoding="utf-8") as ixf:
-        ixf.write(code)
 
-    res = os.system('applications/runestone/scripts/build_preview.sh')
-    if res == 0:
-        with open('applications/runestone/build/preview/build/preview/index.html','r') as ixf:
+# The request variable ``code`` must contain JSON-encoded RST to be rendered by Runestone. Only the HTML containing the actual Runestone component will be returned.
+def preview_question():
+    try:
+        code = json.loads(request.vars.code)
+        with open("applications/{}/build/preview/_sources/index.rst".format(request.application), "w", encoding="utf-8") as ixf:
+            ixf.write(code)
+
+        # Note that ``os.environ`` isn't a dict, it's an object whose setter modifies environment variables. So, modifications of a copy/deepcopy still `modify the original environment <https://stackoverflow.com/questions/13142972/using-copy-deepcopy-on-os-environ-in-python-appears-broken>`_. Therefore, convert it to a dict, where modifications will not affect the environment.
+        env = dict(os.environ)
+        # Prevent any changes to the database when building a preview question.
+        del env['DBURL']
+        # Run a runestone build.
+        popen_obj = subprocess.Popen(
+            [sys.executable, '-m', 'runestone', 'build'],
+            # The build must be run from the directory containing a ``conf.py`` and all the needed support files.
+            cwd='applications/{}/build/preview'.format(request.application),
+            # Capture the build output in case of an error.
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            # Pass the modified environment which doesn't contain ``DBURL``.
+            env=env)
+        stdout, stderr = popen_obj.communicate()
+        # If there was an error, return stdout and stderr from the build.
+        if popen_obj.returncode != 0:
+            return json.dumps('Error: Runestone build failed:\n\n' +
+                              stdout + '\n' + stderr)
+
+        with open('applications/{}/build/preview/build/preview/index.html'.format(request.application), 'r', encoding='utf-8') as ixf:
             src = ixf.read()
             tree = html.fromstring(src)
             component = tree.cssselect(".runestone")
@@ -808,15 +948,17 @@ def preview_question():
                     ctext = html.tostring(component[0])
                     logger.debug("error - ", ctext)
                 else:
-                    ctext = "Unknown error occurred"
+                    ctext = "Error: Runestone content missing."
 
             return json.dumps(ctext)
+    except Exception as ex:
+        return json.dumps('Error: {}'.format(ex))
 
-    return json.dumps(res)
 
 def save_donate():
     if auth.user:
         db(db.auth_user.id == auth.user.id).update(donated=True)
+
 
 def did_donate():
     if auth.user:

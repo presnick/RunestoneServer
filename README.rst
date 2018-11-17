@@ -59,9 +59,9 @@ Installation
        sudo apt-get install libpq-dev
        sudo apt-get install libxml2-dev libxslt1-dev
 
-   **OS X**
+   **macOS**
 
-   On an OS X installation You must install Xcode and the command line tools.  Free from the app store.  Then, I recommend you install homebrew (http://brew.sh)  then run the following commands:
+   On an macOS installation You must install Xcode and the command line tools.  Free from the App Store.  Then, I recommend you install homebrew (http://brew.sh)  then run the following commands:
 
    ::
 
@@ -147,8 +147,8 @@ Installation
 
    * Tell web2py to use that database:
 
-     * If you're running https, edit ``settings.server_type`` in ``models/0.py``.
-     * Set and export environment variable for DBURL -- Note the url format for web2py is different from sqlalchemy.  use `postgres` for web2py and `postgresql` for sqlalchemy.  example:  `postgresql://username:pw@host/database` where pw may be empty.
+     * If you're running https, edit ``settings.server_type`` in ``web2py/applications/runestone/models/0.py``.
+     * Set and export environment variable for DBURL -- Note the url format for web2py is different from sqlalchemy.  use `postgres` for web2py and `postgresql` for sqlalchemy.  example:  `postgresql://username:pw@host/database` where pw may be empty, and `database` is the database you created above, `runestone`.
      * Set and export environment variable WEB2PY_CONFIG. If set to production, it will get the database connection string from DBURL. If set to development, it will get the database connection string from DEV_DBURL. If set to test, it will get it from TEST_DBURL.
      * Set and export environment variable WEB2PY_MIGRATE. If set to Yes, web2py will check on each page load whether any database migrations are needed and perform them. If set to No, web2py will just assume that models match the database. If set to Fake, web2py will try to update the metadata it maintains about the database tables to match the models, but will not make any changes to the database; use that setting only for repairs when something has gone wrong.
      * If you want to customize other settings you can create a file ``applications/runestone/models/1.py`` using ``models/1.py.prototype`` as the template.  If you have your environment variables set up as explained above you probably won't need to worry about this for your initial setup.
@@ -270,7 +270,7 @@ What's New
 How to Contribute
 -----------------
 
-#. Get a github (free) account.
+#. Get a Github (free) account.
 #. Make a fork of this project.  That will create a repository in your
    account for you to have read/write access to.  Very nice, complete
    instructions for making a fork are here:  ``https://help.github.com/articles/fork-a-repo``
@@ -314,7 +314,7 @@ I have begun a project to document the `Runestone Interactive <http://docs.runes
 Enable Bug Reporting on Github
 ------------------------------
 
-The Runestone server now has a controller to allow users to enter bug reports without needing a github account.  But for this to work you will need to configure ``settings.github_token`` in ``models/1.py``
+The Runestone server now has a controller to allow users to enter bug reports without needing a Github account.  But for this to work you will need to configure ``settings.github_token`` in ``models/1.py``
 
 Creating Your Own Textbook
 --------------------------

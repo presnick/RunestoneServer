@@ -66,6 +66,10 @@ auth.settings.login_captcha = False
 auth.settings.retrieve_password_captcha	= False
 auth.settings.retrieve_username_captcha	= False
 
+# Set up for `two-factor authentication <http://web2py.com/books/default/chapter/29/09/access-control#Two-step-verification>`_.
+#auth.settings.auth_two_factor_enabled = True
+#auth.settings.two_factor_methods = [lambda user, auth_two_factor: 'password_here']
+
 
 ## create all tables needed by auth if not custom tables
 db.define_table('courses',
@@ -98,12 +102,9 @@ db.define_table('cohort_master',
 
 def getCourseNameFromId(courseid):
     ''' used to compute auth.user.course_name field '''
-    if courseid == 1: # boguscourse
-        return ''
-    else:
-        q = db.courses.id == courseid
-        course_name = db(q).select()[0].course_name
-        return course_name
+    q = db.courses.id == courseid
+    course_name = db(q).select()[0].course_name
+    return course_name
 
 
 def verifyInstructorStatus(course, instructor):
@@ -243,7 +244,7 @@ db.define_table('user_courses',
 ##
 ## >>> db.mytable.insert(myfield='value')
 ## >>> rows=db(db.mytable.myfield=='value').select(db.mytable.ALL)
-## >>> for row in rows: print row.id, row.myfield
+## >>> for row in rows: print(row.id, row.myfield)
 #########################################################################
 
 
